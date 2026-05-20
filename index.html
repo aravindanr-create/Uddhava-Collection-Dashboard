@@ -13,26 +13,14 @@
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- SheetJS for Excel parsing -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   :root{
-    --bg:#fffbeb;
-    --surface:#ffffff;
-    --ink:#0f172a;
-    --ink-2:#334155;
-    --muted:#64748b;
-    --line:#fde68a;
-    --line-2:#fcd34d;
-    --brand:#f59e0b;
-    --brand-deep:#b45309;
-    --brand-bright:#fbbf24;
-    --brand-pale:#fef3c7;
-    --ok:#16a34a;
-    --warn:#f59e0b;
-    --bad:#dc2626;
+    --bg:#fffbeb;--surface:#ffffff;--ink:#0f172a;--ink-2:#334155;--muted:#64748b;
+    --line:#fde68a;--line-2:#fcd34d;--brand:#f59e0b;--brand-deep:#b45309;
+    --brand-bright:#fbbf24;--brand-pale:#fef3c7;--ok:#16a34a;--warn:#f59e0b;--bad:#dc2626;
   }
-  html,body{background:var(--bg);color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased;}
+  html,body{background:linear-gradient(135deg,#f8faff 0%,#eff6ff 30%,#fefce8 60%,#f0fdf4 100%);color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased;}
   .font-mono{font-family:'JetBrains Mono',monospace;}
   ::-webkit-scrollbar{width:8px;height:8px}
   ::-webkit-scrollbar-track{background:#fef3c7}
@@ -52,15 +40,13 @@
   .btn-amber{background:#f59e0b;color:#1c1917;font-weight:700;transition:all .15s}
   .btn-amber:hover{background:#d97706}
   .hero-dark{
-    background:
-      radial-gradient(circle at 100% 0%, rgba(251,191,36,0.18) 0, transparent 45%),
-      radial-gradient(circle at 0% 100%, rgba(245,158,11,0.10) 0, transparent 40%),
+    background:radial-gradient(circle at 100% 0%,rgba(251,191,36,.18) 0,transparent 45%),
+      radial-gradient(circle at 0% 100%,rgba(245,158,11,.10) 0,transparent 40%),
       linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f172a 100%);
   }
   .hero-grid{
-    background-image:
-      linear-gradient(rgba(255,255,255,0.04) 1px,transparent 1px),
-      linear-gradient(90deg,rgba(255,255,255,0.04) 1px,transparent 1px);
+    background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
     background-size:32px 32px;
   }
   .drop-zone{border:2.5px dashed #fcd34d;transition:all .2s}
@@ -69,6 +55,21 @@
   @media(max-width:768px){.hide-mobile{display:none !important}}
   .toast{animation:toastIn .35s cubic-bezier(.16,1,.3,1)}
   @keyframes toastIn{from{opacity:0;transform:translateY(20px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+  /* Company cascade steps */
+  .cascade-step{position:relative;padding-left:1rem;}
+  .cascade-step::before{content:'';position:absolute;left:0;top:50%;width:0.5rem;height:1px;background:#fcd34d;}
+  .zone-badge-1{background:#dbeafe;color:#1d4ed8;}
+  .zone-badge-2{background:#dcfce7;color:#15803d;}
+  .zone-badge-3{background:#fef3c7;color:#b45309;}
+  .zone-badge-4{background:#fce7f3;color:#be185d;}
+  /* Light dashboard card styles */
+  .kpi-light{background:#ffffff;border-radius:16px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04)}
+  .kpi-light:hover{box-shadow:0 4px 20px rgba(0,0,0,.1);transform:translateY(-1px)}
+  .company-card{background:#fff;border-radius:18px;border:1.5px solid #e2e8f0;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+  .company-card:hover{box-shadow:0 8px 28px rgba(0,0,0,.1);transform:translateY(-2px)}
+  .section-card{background:#fff;border-radius:16px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+  /* Header styling for light dashboard */
+  .dash-header{background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);border-radius:20px;overflow:hidden}
 </style>
 </head>
 <body>
@@ -79,30 +80,135 @@ const { useState, useEffect, useRef, useMemo, createContext, useContext, useCall
 const { createClient } = supabase;
 
 /* =========================================================================
-   SUPABASE — hardcoded credentials (production)
+   SUPABASE
    ========================================================================= */
 const SUPABASE_URL = 'https://udsqghxnrsdclfxhgraz.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkc3FnaHhucnNkY2xmeGhncmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0ODY3OTcsImV4cCI6MjA5NDA2Mjc5N30.Ezl5qfpzRxGRtNofz3aieTIPuNKKE-Kf5cxrHN4uHdU';
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* =========================================================================
-   CONSTANTS
+   COMPANY MASTER DATA
+   ========================================================================= */
+const ZONES = ['Zone 1', 'Zone 2', 'Zone 3', 'Zone 4'];
+
+const KEY_COMPANIES = {
+  'SDF': {
+    label: 'SDF',
+    color: 'blue',
+    subCompanies: {
+      'SDF Plant A':     ZONES,
+      'SDF Plant B':     ZONES,
+      'SDF Warehouse 1': ZONES,
+      'SDF Warehouse 2': ZONES,
+      'SDF Distribution': ZONES,
+    },
+  },
+  'HSR AL': {
+    label: 'HSR AL',
+    color: 'emerald',
+    subCompanies: {
+      'HSR AL Main':      ZONES,
+      'HSR AL Unit 1':    ZONES,
+      'HSR AL Unit 2':    ZONES,
+      'HSR AL Cold Store':ZONES,
+      'HSR AL Dispatch':  ZONES,
+    },
+  },
+  'TENNOCO': {
+    label: 'TENNOCO',
+    color: 'violet',
+    subCompanies: {
+      'TENNOCO HQ':         ZONES,
+      'TENNOCO Factory 1':  ZONES,
+      'TENNOCO Factory 2':  ZONES,
+      'TENNOCO Godown':     ZONES,
+      'TENNOCO Transit Hub':ZONES,
+    },
+  },
+  'TAFE DBR': {
+    label: 'TAFE DBR',
+    color: 'orange',
+    subCompanies: {
+      'TAFE DBR Assembly':  ZONES,
+      'TAFE DBR Parts':     ZONES,
+      'TAFE DBR Warehouse': ZONES,
+      'TAFE DBR Outbound':  ZONES,
+    },
+  },
+  'TAFE MDU': {
+    label: 'TAFE MDU',
+    color: 'rose',
+    subCompanies: {
+      'TAFE MDU Main Plant': ZONES,
+      'TAFE MDU Store':      ZONES,
+      'TAFE MDU Dispatch':   ZONES,
+      'TAFE MDU Returns':    ZONES,
+    },
+  },
+  'CAPARO': {
+    label: 'CAPARO',
+    color: 'amber',
+    subCompanies: {
+      'CAPARO Unit A':    ZONES,
+      'CAPARO Unit B':    ZONES,
+      'CAPARO Press Shop':ZONES,
+      'CAPARO Weld Shop': ZONES,
+      'CAPARO Stores':    ZONES,
+    },
+  },
+};
+
+const KEY_COMPANY_NAMES = Object.keys(KEY_COMPANIES);
+
+const getSubCompanies = (keyCompany) =>
+  keyCompany && KEY_COMPANIES[keyCompany]
+    ? Object.keys(KEY_COMPANIES[keyCompany].subCompanies)
+    : [];
+
+/* ✅ CHANGE 1: getZones now returns all ZONES for any free-typed subCompany string.
+   Zones are no longer gated on the subCompany matching a predefined list. */
+const getZones = (keyCompany, subCompany) =>
+  keyCompany && KEY_COMPANIES[keyCompany] && subCompany
+    ? ZONES
+    : [];
+
+const COMPANY_COLORS = {
+  blue:    { bg:'bg-blue-100',    text:'text-blue-800',    border:'border-blue-300',    dot:'bg-blue-500'    },
+  emerald: { bg:'bg-emerald-100', text:'text-emerald-800', border:'border-emerald-300', dot:'bg-emerald-500' },
+  violet:  { bg:'bg-violet-100',  text:'text-violet-800',  border:'border-violet-300',  dot:'bg-violet-500'  },
+  orange:  { bg:'bg-orange-100',  text:'text-orange-800',  border:'border-orange-300',  dot:'bg-orange-500'  },
+  rose:    { bg:'bg-rose-100',    text:'text-rose-800',    border:'border-rose-300',    dot:'bg-rose-500'    },
+  amber:   { bg:'bg-amber-100',   text:'text-amber-800',   border:'border-amber-300',   dot:'bg-amber-500'   },
+};
+
+const getCompanyColor = (keyCompany) =>
+  COMPANY_COLORS[KEY_COMPANIES[keyCompany]?.color] || COMPANY_COLORS.amber;
+
+const ZONE_STYLES = {
+  'Zone 1': 'zone-badge-1',
+  'Zone 2': 'zone-badge-2',
+  'Zone 3': 'zone-badge-3',
+  'Zone 4': 'zone-badge-4',
+};
+
+/* =========================================================================
+   OTHER CONSTANTS
    ========================================================================= */
 const BRANCHES  = ['TVK','RNT','HSR','MDU','SPR','CBM','DBR'];
 const INCHARGES = ['Vinoth','Mani','Kumar','Ajith','Ramu','Ravi'];
 const SHIFTS    = ['Day','Night'];
 
 /* =========================================================================
-   DATA LAYER — always Supabase, local fallback on error
+   DATA LAYER
    ========================================================================= */
-const LOCAL_KEY = 'uddhava_local_v3';
-
+const LOCAL_KEY = 'uddhava_local_v4';
 const DataContext = createContext(null);
+
 function DataProvider({ children }) {
-  const [entries,  setEntries]  = useState([]);
-  const [connState,setConnState]= useState('connecting'); // connecting|connected|error
-  const [connError,setConnError]= useState('');
-  const [toast,    setToast]    = useState(null);
+  const [entries,   setEntries]   = useState([]);
+  const [connState, setConnState] = useState('connecting');
+  const [connError, setConnError] = useState('');
+  const [toast,     setToast]     = useState(null);
   const channelRef = useRef(null);
 
   const showToast = (msg, kind='ok') => {
@@ -110,15 +216,11 @@ function DataProvider({ children }) {
     setTimeout(() => setToast(null), 3500);
   };
 
-  /* ---- initial load ---- */
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const { data, error } = await sb
-          .from('entries')
-          .select('*')
-          .order('created_at', { ascending: false });
+        const { data, error } = await sb.from('entries').select('*').order('created_at', { ascending: false });
         if (error) throw error;
         if (cancelled) return;
         setEntries((data || []).map(rowToEntry));
@@ -127,15 +229,10 @@ function DataProvider({ children }) {
         if (cancelled) return;
         setConnState('error');
         setConnError(e.message || 'Connection failed');
-        // fall back to local
-        try {
-          const raw = localStorage.getItem(LOCAL_KEY);
-          if (raw) setEntries(JSON.parse(raw));
-        } catch(_) {}
+        try { const raw = localStorage.getItem(LOCAL_KEY); if (raw) setEntries(JSON.parse(raw)); } catch(_) {}
       }
     })();
 
-    /* ---- realtime subscription ---- */
     const ch = sb.channel('entries-rt')
       .on('postgres_changes', { event:'*', schema:'public', table:'entries' }, payload => {
         setEntries(prev => {
@@ -163,32 +260,10 @@ function DataProvider({ children }) {
     };
   }, []);
 
-  /* ---- mutations ---- */
-  const addEntry = async (entry) => {
-    const row = entryToRow(entry);
-    const { error } = await sb.from('entries').insert(row);
-    if (error) throw error;
-    showToast('Entry saved ✓');
-  };
-
-  const addEntries = async (entriesArr) => {
-    const rows = entriesArr.map(entryToRow);
-    const { error } = await sb.from('entries').insert(rows);
-    if (error) throw error;
-    showToast(`${entriesArr.length} entries uploaded ✓`);
-  };
-
-  const updateEntry = async (id, patch) => {
-    const { error } = await sb.from('entries').update(entryToRow(patch)).eq('id', id);
-    if (error) throw error;
-    showToast('Updated ✓');
-  };
-
-  const deleteEntry = async (id) => {
-    const { error } = await sb.from('entries').delete().eq('id', id);
-    if (error) throw error;
-    showToast('Deleted');
-  };
+  const addEntry    = async (entry) => { const { error } = await sb.from('entries').insert(entryToRow(entry)); if (error) throw error; showToast('Entry saved ✓'); };
+  const addEntries  = async (arr)   => { const { error } = await sb.from('entries').insert(arr.map(entryToRow)); if (error) throw error; showToast(`${arr.length} entries uploaded ✓`); };
+  const updateEntry = async (id, patch) => { const { error } = await sb.from('entries').update(entryToRow(patch)).eq('id', id); if (error) throw error; showToast('Updated ✓'); };
+  const deleteEntry = async (id) => { const { error } = await sb.from('entries').delete().eq('id', id); if (error) throw error; showToast('Deleted'); };
 
   return (
     <DataContext.Provider value={{ entries, connState, connError, addEntry, addEntries, updateEntry, deleteEntry, toast }}>
@@ -198,12 +273,14 @@ function DataProvider({ children }) {
 }
 const useData = () => useContext(DataContext);
 
-/* mappers */
 const entryToRow = (e) => ({
   id: e.id,
   date: e.date,
   type: e.type || 'collection',
   collection_name: e.collectionName || '',
+  key_company:  e.keyCompany  || '',
+  sub_company:  e.subCompany  || '',
+  zone:         e.zone        || '',
   vehicle_no: e.vehicleNo || '',
   from_loc: e.fromLoc || '',
   to_loc: e.toLoc || '',
@@ -223,6 +300,9 @@ const rowToEntry = (r) => ({
   date: r.date,
   type: r.type,
   collectionName: r.collection_name || '',
+  keyCompany:  r.key_company  || '',
+  subCompany:  r.sub_company  || '',
+  zone:        r.zone         || '',
   vehicleNo: r.vehicle_no,
   fromLoc: r.from_loc,
   toLoc: r.to_loc,
@@ -243,19 +323,152 @@ const rowToEntry = (r) => ({
    ========================================================================= */
 const fmtTime = iso => iso ? new Date(iso).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true}) : '—';
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '—';
-const fmtDur  = (a,b) => {
-  if (!a || !b) return '—';
-  const m = Math.round((new Date(b)-new Date(a))/60000);
-  if (m < 0) return '—';
-  return m < 60 ? `${m}m` : `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m`;
-};
-const toLocalInput = iso => {
-  if (!iso) return '';
-  const d = new Date(iso), p = n => String(n).padStart(2,'0');
-  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
-};
+const fmtDur  = (a,b) => { if (!a||!b) return '—'; const m=Math.round((new Date(b)-new Date(a))/60000); if(m<0) return '—'; return m<60?`${m}m`:`${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m`; };
+const toLocalInput = iso => { if (!iso) return ''; const d=new Date(iso),p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
 const todayStr = () => new Date().toISOString().slice(0,10);
 const genId    = () => `E-${Date.now().toString(36).toUpperCase()}`;
+
+/* =========================================================================
+   COMPANY BADGE
+   ========================================================================= */
+function CompanyBadge({ keyCompany, subCompany, zone, size='sm' }) {
+  if (!keyCompany) return null;
+  const c = getCompanyColor(keyCompany);
+  const zStyle = ZONE_STYLES[zone] || 'zone-badge-1';
+  const textSz = size === 'xs' ? 'text-[10px]' : 'text-xs';
+  return (
+    <div className={`inline-flex items-center gap-1 flex-wrap ${textSz}`}>
+      <span className={`inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-full ${c.bg} ${c.text}`}>
+        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${c.dot}`}></span>
+        {keyCompany}
+      </span>
+      {subCompany && <span className="text-slate-400">›</span>}
+      {subCompany && <span className="font-semibold text-slate-600">{subCompany}</span>}
+      {zone && <span className="text-slate-400">›</span>}
+      {zone && <span className={`font-bold px-2 py-0.5 rounded-full ${zStyle}`}>{zone}</span>}
+    </div>
+  );
+}
+
+/* =========================================================================
+   CASCADING COMPANY SELECTOR
+   Sub-company is fully free-text; predefined names are suggestions only.
+   ========================================================================= */
+function CompanySelector({ keyCompany, subCompany, zone, onChange, errors = {} }) {
+  const subOptions  = getSubCompanies(keyCompany);
+  const zoneOptions = getZones(keyCompany, subCompany);
+
+  const handleKeyChange = (val) => {
+    onChange({ keyCompany: val, subCompany: '', zone: '' });
+  };
+  const handleSubChange = (val) => {
+    onChange({ keyCompany, subCompany: val, zone: '' });
+  };
+  const handleZoneChange = (val) => {
+    onChange({ keyCompany, subCompany, zone: val });
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Step 1: Key Company */}
+      <div>
+        <label className="block text-xs font-bold text-slate-700 mb-1.5">
+          Key Company <span className="text-red-500">*</span>
+          {errors.keyCompany && <span className="text-red-500 ml-2 font-normal">— {errors.keyCompany}</span>}
+        </label>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          {KEY_COMPANY_NAMES.map(name => {
+            const c = getCompanyColor(name);
+            const active = keyCompany === name;
+            return (
+              <button key={name} type="button" onClick={() => handleKeyChange(name)}
+                className={`py-2.5 px-3 rounded-xl text-sm font-bold border-2 transition-all text-left flex items-center gap-2 ${
+                  active
+                    ? `${c.bg} ${c.text} ${c.border} shadow-sm`
+                    : 'border-slate-200 hover:border-amber-300 hover:bg-amber-50 text-slate-600'
+                }`}>
+                <span className={`w-2 h-2 rounded-full shrink-0 ${active ? c.dot : 'bg-slate-300'}`}></span>
+                {name}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Step 2: Sub Company — free-text with suggestions */}
+      {keyCompany && (
+        <div className="cascade-step fade-in">
+          <label className="block text-xs font-bold text-slate-700 mb-1.5">
+            Sub Company <span className="text-red-500">*</span>
+            <span className="ml-1 font-normal text-slate-400">(type any name or pick a suggestion)</span>
+            {errors.subCompany && <span className="text-red-500 ml-2 font-normal">— {errors.subCompany}</span>}
+          </label>
+          <div className="relative">
+            <input
+              list={`sub-list-${keyCompany}`}
+              value={subCompany}
+              onChange={e => handleSubChange(e.target.value)}
+              placeholder={`Type any sub-company name…`}
+              className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:border-amber-400"
+              autoComplete="off"
+            />
+            <datalist id={`sub-list-${keyCompany}`}>
+              {subOptions.map(opt => <option key={opt} value={opt}/>)}
+            </datalist>
+          </div>
+          {subOptions.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {subOptions.map(opt => (
+                <button key={opt} type="button" onClick={() => handleSubChange(opt)}
+                  className={`text-[11px] px-2 py-0.5 rounded-full border transition-all font-medium ${
+                    subCompany === opt
+                      ? 'bg-amber-400 border-amber-400 text-slate-900'
+                      : 'border-slate-200 text-slate-500 hover:border-amber-300 hover:bg-amber-50'
+                  }`}>
+                  {opt}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Step 3: Zone */}
+      {keyCompany && subCompany && (
+        <div className="cascade-step fade-in">
+          <label className="block text-xs font-bold text-slate-700 mb-1.5">
+            Zone <span className="text-red-500">*</span>
+            {errors.zone && <span className="text-red-500 ml-2 font-normal">— {errors.zone}</span>}
+          </label>
+          <div className="grid grid-cols-4 gap-2">
+            {zoneOptions.map(z => {
+              const zStyle = ZONE_STYLES[z] || '';
+              const active = zone === z;
+              return (
+                <button key={z} type="button" onClick={() => handleZoneChange(z)}
+                  className={`py-2.5 px-2 rounded-xl text-xs font-bold border-2 transition-all text-center ${
+                    active
+                      ? `${zStyle} border-current shadow-sm scale-105`
+                      : 'border-slate-200 hover:border-amber-300 hover:bg-amber-50 text-slate-600'
+                  }`}>
+                  {z}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Live preview */}
+      {keyCompany && subCompany && zone && (
+        <div className="fade-in bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center gap-2">
+          <span className="text-xs text-slate-500 font-semibold shrink-0">Selected:</span>
+          <CompanyBadge keyCompany={keyCompany} subCompany={subCompany} zone={zone} />
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* =========================================================================
    APP SHELL
@@ -284,39 +497,33 @@ function Shell() {
   }[connState] || { dot:'bg-slate-400', label:'…', cls:'bg-slate-100 text-slate-600' };
 
   return (
-    <div className="min-h-screen bg-amber-50">
-      {/* HEADER */}
-      <header className="bg-white border-b-2 border-amber-300 sticky top-0 z-30 shadow-sm">
+    <div className="min-h-screen" style={{background:"linear-gradient(135deg,#f8faff 0%,#eff6ff 30%,#fefce8 60%,#f0fdf4 100%)"}}>
+      <header className="bg-white/95 backdrop-blur border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div className="px-4 md:px-6 h-16 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center text-white shadow-md">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M3 7h11v8H3zM14 10h4l3 3v2h-7zM5 17a2 2 0 11.001 4A2 2 0 015 17m12 0a2 2 0 11.001 4A2 2 0 0117 17"/>
-              </svg>
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M3 7h11v8H3zM14 10h4l3 3v2h-7zM5 17a2 2 0 11.001 4A2 2 0 015 17m12 0a2 2 0 11.001 4A2 2 0 0117 17"/></svg>
             </div>
             <div>
               <div className="font-extrabold text-lg leading-tight text-slate-900">Uddhava Logistics</div>
               <div className="font-mono text-[10px] text-slate-500 tracking-widest hide-mobile">Vehicle Allotment</div>
             </div>
           </div>
-
           <div className="flex items-center gap-3">
             <div className="hide-mobile text-right">
               <div className="text-xs text-slate-500">{now.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}</div>
               <div className="font-mono text-sm font-bold tabular-nums">{now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</div>
             </div>
-            {/* live badge */}
             <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${connMeta.cls}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${connMeta.dot} ${connState==='connected'?'pulse-dot':''}`}></span>
               <span className="hide-mobile">{connMeta.label}</span>
             </div>
           </div>
         </div>
-
         <div className="px-2 md:px-6 flex gap-0 border-t border-amber-200">
           {tabs.map(t => (
             <button key={t.key} onClick={()=>setPage(t.key)}
-              className={`px-3 md:px-5 py-2.5 text-sm font-bold border-b-2 transition-colors ${page===t.key?'border-amber-500 text-amber-800':'border-transparent text-slate-500 hover:text-slate-800'}`}>
+              className={`px-3 md:px-5 py-2.5 text-sm font-bold border-b-2 transition-colors ${page===t.key?'border-blue-500 text-blue-700 bg-blue-50/50':'border-transparent text-slate-500 hover:text-slate-700'}`}>
               <span className="md:hidden mr-1">{t.icon}</span>{t.label}
             </button>
           ))}
@@ -327,7 +534,6 @@ function Shell() {
       {page==='entries'   && <EntriesPage onNew={()=>setShowForm(true)} onEdit={setEditEntry}/>}
       {page==='reports'   && <ReportsPage/>}
 
-      {/* Mobile FAB */}
       <button onClick={()=>setShowForm(true)}
         className="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-2xl shadow-amber-500/40 flex items-center justify-center z-20 active:scale-95 transition-transform">
         <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
@@ -335,12 +541,9 @@ function Shell() {
 
       {(showForm || editEntry) && <EntryForm entry={editEntry} onClose={()=>{setShowForm(false);setEditEntry(null);}}/>}
 
-      {/* Toast */}
       {toast && (
-        <div className={`toast fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-2xl font-semibold text-sm flex items-center gap-2 ${
-          toast.kind==='bad' ? 'bg-red-600 text-white' : 'bg-slate-900 text-amber-300'
-        }`}>
-          {toast.kind==='bad' ? '⚠' : '✓'} {toast.msg}
+        <div className={`toast fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-2xl font-semibold text-sm flex items-center gap-2 ${toast.kind==='bad'?'bg-red-600 text-white':'bg-slate-900 text-amber-300'}`}>
+          {toast.kind==='bad'?'⚠':'✓'} {toast.msg}
         </div>
       )}
     </div>
@@ -364,31 +567,34 @@ function Dashboard({ onNew, onEdit, goEntries }) {
   const branchStats = BRANCHES.map(b=>({ branch:b, count:day.filter(e=>e.branch===b).length })).filter(x=>x.count>0);
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Hero */}
-      <div className="hero-dark hero-grid rounded-2xl p-6 md:p-8 shadow-xl relative overflow-hidden">
-        <div className="relative flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 mb-3">
-              <span className="w-1.5 h-1.5 bg-amber-400 rounded-full pulse-dot"></span>
-              <span className="font-mono text-xs text-amber-400 tracking-widest font-bold">OPERATIONS SUMMARY</span>
+    <div className="p-4 md:p-6 space-y-5 max-w-7xl mx-auto">
+      {/* ── Hero ── */}
+      <div className="rounded-2xl overflow-hidden shadow-lg" style={{background:"linear-gradient(135deg,#1e293b 0%,#0f172a 100%)"}}>
+        <div className="relative p-6 md:p-7">
+          <div className="absolute inset-0 opacity-5" style={{backgroundImage:"radial-gradient(circle,#fff 1px,transparent 1px)",backgroundSize:"22px 22px"}}></div>
+          <div className="relative flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/20 border border-amber-400/30 mb-3">
+                <span className="w-1.5 h-1.5 bg-amber-400 rounded-full pulse-dot"></span>
+                <span className="font-mono text-xs text-amber-300 tracking-widest font-bold">LIVE · OPERATIONS</span>
+              </div>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight">{fmtDate(latestDate)}</h2>
+              <p className="text-slate-400 mt-1.5 text-sm">
+                <span className="font-bold text-white">{day.length}</span> {day.length===1?'entry':'entries'} logged
+                {transit.length>0 && <span className="ml-2 text-amber-300 font-semibold">· {transit.length} in transit</span>}
+              </p>
             </div>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-black tracking-tight">{fmtDate(latestDate)}</h2>
-            <p className="text-slate-300 mt-1.5">
-              <span className="font-bold text-white">{day.length}</span> {day.length===1?'entry':'entries'} logged
-              {transit.length>0 && <span className="ml-2 text-amber-300">· {transit.length} in transit</span>}
-            </p>
+            <button onClick={onNew} className="hidden md:flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-slate-900 px-5 py-3 rounded-xl font-bold shadow-lg transition-all hover:scale-105 active:scale-100">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+              New Entry
+            </button>
           </div>
-          <button onClick={onNew} className="hidden md:flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-slate-900 px-5 py-3 rounded-xl font-bold shadow-lg transition-all hover:scale-105">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
-            New Entry
-          </button>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-7">
-          <KPI label="Collections"  value={collections.length}  sub="Inbound"    tone="blue"/>
-          <KPI label="Total Today"  value={day.length}          sub="All entries" tone="purple"/>
-          <KPI label="Delivered"    value={delivered.length}    sub="Completed"  tone="green" highlight/>
-          <KPI label="In Transit"   value={transit.length}      sub="On route"   tone="amber" highlight/>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <KPI label="Collections"  value={collections.length} sub="Inbound"     tone="blue"/>
+            <KPI label="Total Today"  value={day.length}         sub="All entries" tone="purple"/>
+            <KPI label="Delivered"    value={delivered.length}   sub="Completed"   tone="green" highlight/>
+            <KPI label="In Transit"   value={transit.length}     sub="On route"    tone="amber" highlight/>
+          </div>
         </div>
       </div>
 
@@ -401,12 +607,12 @@ function Dashboard({ onNew, onEdit, goEntries }) {
       </Section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Section title="By Shift" className="lg:col-span-1">
+        <Section title="By Shift &amp; Branch" className="lg:col-span-1">
           <div className="space-y-3">
             {shiftStats.map(s=>{
-              const pct = s.count ? (s.done/s.count)*100 : 0;
+              const pct = s.count?(s.done/s.count)*100:0;
               return (
-                <div key={s.shift} className="bg-white border border-amber-200 rounded-xl p-4">
+                <div key={s.shift} className="section-card p-4">
                   <div className="flex justify-between items-baseline mb-2">
                     <div className="font-bold flex items-center gap-2"><span>{s.shift==='Day'?'☀️':'🌙'}</span>{s.shift} Shift</div>
                     <div className="font-mono text-sm"><span className="text-green-600 font-bold">{s.done}</span><span className="text-slate-400"> / {s.count}</span></div>
@@ -414,54 +620,98 @@ function Dashboard({ onNew, onEdit, goEntries }) {
                   <div className="h-2 bg-amber-100 rounded-full overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-amber-400 to-amber-600 rounded-full" style={{width:`${pct}%`}}></div>
                   </div>
-                  <div className="text-xs text-slate-500 mt-1.5">{s.count ? `${Math.round(pct)}% complete` : 'No entries yet'}</div>
+                  <div className="text-xs text-slate-500 mt-1.5">{s.count?`${Math.round(pct)}% complete`:'No entries yet'}</div>
                 </div>
               );
             })}
-          </div>
-          {branchStats.length>0 && (
-            <div className="bg-white border border-amber-200 rounded-xl p-4 mt-3">
-              <div className="font-bold mb-3 text-slate-900">By Branch</div>
-              <div className="grid grid-cols-2 gap-2">
-                {branchStats.map(b=>(
-                  <div key={b.branch} className="flex justify-between items-center bg-amber-50 px-3 py-2 rounded-lg">
-                    <span className="font-mono font-bold text-amber-800">{b.branch}</span>
-                    <span className="font-bold tabular-nums">{b.count}</span>
-                  </div>
-                ))}
+            {branchStats.length>0 && (
+              <div className="section-card p-4 mt-3">
+                <div className="font-bold mb-3 text-slate-900">By Branch</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {branchStats.map(b=>(
+                    <div key={b.branch} className="flex justify-between items-center bg-amber-50 px-3 py-2 rounded-lg">
+                      <span className="font-mono font-bold text-amber-800">{b.branch}</span>
+                      <span className="font-bold tabular-nums">{b.count}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </Section>
 
         <Section title="Recent Activity" className="lg:col-span-2">
-          <div className="bg-white border border-amber-200 rounded-xl divide-y divide-amber-100 overflow-hidden">
+          <div className="section-card divide-y divide-slate-50 overflow-hidden">
             {day.slice(0,8).map(e=><ActivityRow key={e.id} entry={e} onClick={()=>onEdit(e)}/>)}
             {day.length===0 && <EmptyState text="No entries logged yet today."/>}
           </div>
         </Section>
       </div>
+
+      {/* ✅ CHANGE 3 & 4: Renamed to "Company wise Summary" + sorted by trip count descending */}
+      <Section title="Company wise Summary" subtitle={`${fmtDate(latestDate)} · All companies`}>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {[...KEY_COMPANY_NAMES]
+            .sort((a,b) => day.filter(e=>e.keyCompany===b).length - day.filter(e=>e.keyCompany===a).length)
+            .map(k => {
+            const c = getCompanyColor(k);
+            const total     = day.filter(e=>e.keyCompany===k).length;
+            const deliveredK = day.filter(e=>e.keyCompany===k&&e.status==='delivered').length;
+            const transitK   = day.filter(e=>e.keyCompany===k&&e.status==='transit').length;
+            const pct       = total?(deliveredK/total)*100:0;
+            const zones     = ZONES.map(z=>({ z, n:day.filter(e=>e.keyCompany===k&&e.zone===z).length })).filter(x=>x.n>0);
+            return (
+              <div key={k} className={`company-card border-2 ${c.border} overflow-hidden`}>
+                <div className={`h-1.5 ${c.dot}`}></div>
+                <div className="p-4">
+                  <div className={`text-xs font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1.5 mb-3 ${c.bg} ${c.text}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${c.dot} ${total>0?'pulse-dot':''}`}></span>
+                    {k}
+                  </div>
+                  <div className="font-extrabold text-3xl tabular-nums text-slate-900 leading-none">{total}</div>
+                  <div className="text-xs text-slate-400 mt-0.5 font-medium">Total trips</div>
+                  <div className="mt-3 flex justify-between text-xs">
+                    <span className="text-green-600 font-bold">{deliveredK} done</span>
+                    {transitK>0 && <span className="text-amber-600 font-semibold">{transitK} out</span>}
+                  </div>
+                  <div className="h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                    <div className={`h-full rounded-full transition-all ${c.dot}`} style={{width:`${pct}%`}}></div>
+                  </div>
+                  {zones.length>0 && (
+                    <div className="flex flex-wrap gap-1 mt-2.5">
+                      {zones.map(({z,n})=>(
+                        <span key={z} className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${ZONE_STYLES[z]||''}`}>{z.replace('Zone ','Z')}{n>1?` ×${n}`:''}</span>
+                      ))}
+                    </div>
+                  )}
+                  {total===0 && <div className="text-[11px] text-slate-300 mt-2 font-medium">No trips today</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Section>
     </div>
   );
 }
 
 const KPI = ({ label, value, sub, tone='amber', highlight }) => {
   const tones = {
-    blue:   { bar:'bg-blue-400',   text:'text-blue-300',   ring:'ring-blue-400/30' },
-    purple: { bar:'bg-purple-400', text:'text-purple-300', ring:'ring-purple-400/30' },
-    green:  { bar:'bg-green-400',  text:'text-green-300',  ring:'ring-green-400/30' },
-    amber:  { bar:'bg-amber-400',  text:'text-amber-300',  ring:'ring-amber-400/30' },
+    blue:   { bar:'bg-blue-400',   text:'text-blue-200',   bg:'bg-blue-500/10',   ring:'ring-blue-400/40',  val:'text-blue-100'   },
+    purple: { bar:'bg-purple-400', text:'text-purple-200', bg:'bg-purple-500/10', ring:'ring-purple-400/40',val:'text-purple-100' },
+    green:  { bar:'bg-emerald-400',text:'text-emerald-200',bg:'bg-emerald-500/10',ring:'ring-emerald-400/40',val:'text-emerald-100'},
+    amber:  { bar:'bg-amber-400',  text:'text-amber-200',  bg:'bg-amber-500/10',  ring:'ring-amber-400/40', val:'text-amber-100'  },
   };
   const t = tones[tone];
   return (
-    <div className={`relative bg-slate-800/60 backdrop-blur rounded-xl p-4 md:p-5 border border-slate-700/50 ${highlight?`ring-1 ${t.ring}`:''} overflow-hidden`}>
+    <div className={`relative rounded-2xl p-4 md:p-5 border border-white/10 bg-white/5 backdrop-blur-sm ${highlight?`ring-1 ${t.ring}`:''} overflow-hidden transition-all hover:bg-white/10`}>
       <div className={`absolute top-0 left-0 right-0 h-0.5 ${t.bar}`}></div>
       <div className="flex items-start justify-between mb-2">
-        <div className={`font-mono text-[10px] tracking-widest font-bold ${t.text}`}>{label.toUpperCase()}</div>
-        <div className={`w-1.5 h-1.5 rounded-full ${t.bar} ${highlight?'pulse-dot':''}`}></div>
+        <div className={`font-mono text-[10px] tracking-widest font-bold ${t.text} opacity-80`}>{label.toUpperCase()}</div>
+        <div className={`w-2 h-2 rounded-full ${t.bar} ${highlight?'pulse-dot':''}`}></div>
       </div>
-      <div className="font-extrabold text-4xl md:text-5xl text-white leading-none tabular-nums tracking-tight">{value}</div>
-      <div className="text-xs text-slate-400 mt-2">{sub}</div>
+      <div className={`font-extrabold text-4xl md:text-5xl leading-none tabular-nums tracking-tight ${highlight?t.val:'text-white'}`}>{value}</div>
+      <div className={`text-xs mt-2 ${t.text} opacity-60`}>{sub}</div>
     </div>
   );
 };
@@ -471,7 +721,7 @@ const Section = ({ title, subtitle, action, children, className='' }) => (
     <div className="flex items-end justify-between mb-3">
       <div>
         <h3 className="text-lg font-extrabold text-slate-900">{title}</h3>
-        {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
+        {subtitle && <p className="text-sm text-slate-400">{subtitle}</p>}
       </div>
       {action}
     </div>
@@ -480,7 +730,7 @@ const Section = ({ title, subtitle, action, children, className='' }) => (
 );
 
 const EmptyState = ({ text }) => (
-  <div className="bg-white border border-dashed border-amber-300 rounded-xl p-8 text-center text-slate-500">{text}</div>
+  <div className="bg-slate-50 border border-dashed border-slate-300 rounded-xl p-8 text-center text-slate-400">{text}</div>
 );
 
 function TransitCard({ entry, onEdit }) {
@@ -488,16 +738,19 @@ function TransitCard({ entry, onEdit }) {
   useEffect(()=>{ const i=setInterval(()=>setTick(t=>t+1),30000); return ()=>clearInterval(i); },[]);
   const elapsed = entry.outTime ? fmtDur(entry.outTime, new Date().toISOString()) : '—';
   return (
-    <div onClick={onEdit} className="bg-white border-2 border-amber-200 rounded-xl p-4 hover:border-amber-500 hover:shadow-lg cursor-pointer transition-all">
-      <div className="flex justify-between items-start mb-3">
+    <div onClick={onEdit} className="company-card p-4 cursor-pointer hover:border-amber-300">
+      <div className="flex justify-between items-start mb-2">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-mono text-xs text-slate-500">{entry.id}</span>
-            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">COLLECTION</span>
             <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">{entry.branch}</span>
           </div>
           <div className="font-extrabold text-slate-900 mt-1">{entry.vehicleNo}</div>
-          {entry.collectionName && <div className="text-sm text-amber-800 font-semibold">{entry.collectionName}</div>}
+          {entry.keyCompany && (
+            <div className="mt-1">
+              <CompanyBadge keyCompany={entry.keyCompany} subCompany={entry.subCompany} zone={entry.zone} size="xs"/>
+            </div>
+          )}
         </div>
         <span className="inline-flex items-center gap-1.5 bg-amber-100 text-amber-800 px-2 py-1 rounded-full text-xs font-bold">
           <span className="w-1.5 h-1.5 bg-amber-500 rounded-full pulse-dot"></span>TRANSIT
@@ -522,7 +775,7 @@ function TransitCard({ entry, onEdit }) {
 
 function ActivityRow({ entry, onClick }) {
   return (
-    <button onClick={onClick} className="w-full p-3.5 hover:bg-amber-50/60 text-left flex items-center gap-3">
+    <button onClick={onClick} className="w-full p-3.5 hover:bg-blue-50/40 text-left flex items-center gap-3 transition-colors">
       <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${entry.status==='delivered'?'bg-green-100 text-green-700':'bg-amber-100 text-amber-700'}`}>
         {entry.status==='delivered'
           ? <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
@@ -532,6 +785,7 @@ function ActivityRow({ entry, onClick }) {
         <div className="flex items-center gap-2 text-sm flex-wrap">
           <span className="font-extrabold">{entry.vehicleNo}</span>
           <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">{entry.branch}</span>
+          {entry.keyCompany && <CompanyBadge keyCompany={entry.keyCompany} subCompany="" zone="" size="xs"/>}
           <span className="text-slate-400">·</span>
           <span className="text-slate-600 truncate">{entry.fromLoc} → {entry.toLoc}</span>
         </div>
@@ -550,24 +804,26 @@ function ActivityRow({ entry, onClick }) {
    ========================================================================= */
 function EntriesPage({ onNew, onEdit }) {
   const { entries } = useData();
-  const [filter, setFilter] = useState({ date:'all', status:'all', shift:'all', branch:'all', search:'' });
+  const [filter, setFilter] = useState({ date:'all', status:'all', shift:'all', branch:'all', keyCompany:'all', zone:'all', search:'' });
   const dates = useMemo(()=>[...new Set(entries.map(e=>e.date))].sort().reverse(),[entries]);
 
   const filtered = entries.filter(e => {
-    if (filter.date   !== 'all' && e.date   !== filter.date)   return false;
-    if (filter.status !== 'all' && e.status !== filter.status) return false;
-    if (filter.shift  !== 'all' && e.shift  !== filter.shift)  return false;
-    if (filter.branch !== 'all' && e.branch !== filter.branch) return false;
+    if (filter.date       !== 'all' && e.date       !== filter.date)       return false;
+    if (filter.status     !== 'all' && e.status     !== filter.status)     return false;
+    if (filter.shift      !== 'all' && e.shift      !== filter.shift)      return false;
+    if (filter.branch     !== 'all' && e.branch     !== filter.branch)     return false;
+    if (filter.keyCompany !== 'all' && e.keyCompany !== filter.keyCompany) return false;
+    if (filter.zone       !== 'all' && e.zone       !== filter.zone)       return false;
     if (filter.search) {
       const s = filter.search.toLowerCase();
-      if (!`${e.id} ${e.vehicleNo} ${e.fromLoc} ${e.toLoc} ${e.driverName} ${e.driverMobile} ${e.incharge} ${e.branch} ${e.collectionName}`.toLowerCase().includes(s)) return false;
+      if (!`${e.id} ${e.vehicleNo} ${e.fromLoc} ${e.toLoc} ${e.driverName} ${e.driverMobile} ${e.incharge} ${e.branch} ${e.collectionName} ${e.keyCompany} ${e.subCompany} ${e.zone}`.toLowerCase().includes(s)) return false;
     }
     return true;
   });
 
   const exportCSV = () => {
-    const h = ['ID','Date','Collection Name','Vehicle','Branch','From','To','Shift','Incharge','Driver','Mobile','Out Time','In Time','Duration','Status','Remarks'];
-    const rows = filtered.map(e=>[e.id,e.date,e.collectionName||'',e.vehicleNo,e.branch,e.fromLoc,e.toLoc,e.shift,e.incharge,e.driverName,e.driverMobile,fmtTime(e.outTime),fmtTime(e.inTime),fmtDur(e.outTime,e.inTime),e.status,e.remarks||'']);
+    const h = ['ID','Date','Key Company','Sub Company','Zone','Vehicle','Branch','From','To','Shift','Incharge','Driver','Mobile','Out Time','In Time','Duration','Status','Remarks'];
+    const rows = filtered.map(e=>[e.id,e.date,e.keyCompany||'',e.subCompany||'',e.zone||'',e.vehicleNo,e.branch,e.fromLoc,e.toLoc,e.shift,e.incharge,e.driverName,e.driverMobile,fmtTime(e.outTime),fmtTime(e.inTime),fmtDur(e.outTime,e.inTime),e.status,e.remarks||'']);
     const csv = [h,...rows].map(r=>r.map(c=>`"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
@@ -594,24 +850,32 @@ function EntriesPage({ onNew, onEdit }) {
       </div>
 
       {/* Filters */}
-      <div className="bg-white border-2 border-amber-200 rounded-xl p-3 flex flex-wrap gap-2">
+      <div className="section-card p-3 flex flex-wrap gap-2">
         <input value={filter.search} onChange={e=>setFilter({...filter,search:e.target.value})}
-          placeholder="🔍  Search vehicle, driver, branch..."
-          className="flex-1 min-w-[180px] px-3 py-2 bg-amber-50/50 border border-amber-200 rounded-lg text-sm"/>
-        <select value={filter.date} onChange={e=>setFilter({...filter,date:e.target.value})} className="px-3 py-2 bg-amber-50/50 border border-amber-200 rounded-lg text-sm">
+          placeholder="🔍  Search vehicle, driver, company, zone..."
+          className="flex-1 min-w-[200px] px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm"/>
+        <select value={filter.date} onChange={e=>setFilter({...filter,date:e.target.value})} className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
           <option value="all">All Dates</option>
           {dates.map(d=><option key={d} value={d}>{fmtDate(d)}</option>)}
         </select>
-        <select value={filter.branch} onChange={e=>setFilter({...filter,branch:e.target.value})} className="px-3 py-2 bg-amber-50/50 border border-amber-200 rounded-lg text-sm">
+        <select value={filter.keyCompany} onChange={e=>setFilter({...filter,keyCompany:e.target.value,zone:'all'})} className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
+          <option value="all">All Companies</option>
+          {KEY_COMPANY_NAMES.map(k=><option key={k} value={k}>{k}</option>)}
+        </select>
+        <select value={filter.zone} onChange={e=>setFilter({...filter,zone:e.target.value})} className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
+          <option value="all">All Zones</option>
+          {ZONES.map(z=><option key={z} value={z}>{z}</option>)}
+        </select>
+        <select value={filter.branch} onChange={e=>setFilter({...filter,branch:e.target.value})} className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
           <option value="all">All Branches</option>
           {BRANCHES.map(b=><option key={b} value={b}>{b}</option>)}
         </select>
-        <select value={filter.status} onChange={e=>setFilter({...filter,status:e.target.value})} className="px-3 py-2 bg-amber-50/50 border border-amber-200 rounded-lg text-sm">
+        <select value={filter.status} onChange={e=>setFilter({...filter,status:e.target.value})} className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
           <option value="all">All Statuses</option>
           <option value="delivered">Delivered</option>
           <option value="transit">In Transit</option>
         </select>
-        <select value={filter.shift} onChange={e=>setFilter({...filter,shift:e.target.value})} className="px-3 py-2 bg-amber-50/50 border border-amber-200 rounded-lg text-sm">
+        <select value={filter.shift} onChange={e=>setFilter({...filter,shift:e.target.value})} className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
           <option value="all">All Shifts</option>
           {SHIFTS.map(s=><option key={s} value={s}>{s}</option>)}
         </select>
@@ -623,7 +887,7 @@ function EntriesPage({ onNew, onEdit }) {
           <table className="w-full text-sm">
             <thead className="bg-amber-100 border-b-2 border-amber-200">
               <tr className="text-left">
-                {['Entry','Collection Name','Vehicle','Branch','From → To','Shift / Incharge','Driver','Out → In','Duration','Status',''].map(h=>(
+                {['Entry','Key Company / Zone','Vehicle','Branch','From → To','Shift / Incharge','Driver','Out → In','Duration','Status',''].map(h=>(
                   <th key={h} className="px-3 py-2.5 font-mono text-[10px] font-bold text-amber-900 tracking-wider uppercase">{h}</th>
                 ))}
               </tr>
@@ -632,7 +896,9 @@ function EntriesPage({ onNew, onEdit }) {
               {filtered.map(e => (
                 <tr key={e.id} className="hover:bg-amber-50/50">
                   <td className="px-3 py-2.5"><div className="font-mono text-xs text-slate-500">{e.id}</div><div className="text-xs text-slate-400">{fmtDate(e.date)}</div></td>
-                  <td className="px-3 py-2.5"><div className="text-sm font-semibold text-slate-800">{e.collectionName||'—'}</div></td>
+                  <td className="px-3 py-2.5">
+                    <CompanyBadge keyCompany={e.keyCompany} subCompany={e.subCompany} zone={e.zone} size="xs"/>
+                  </td>
                   <td className="px-3 py-2.5 font-extrabold">{e.vehicleNo}</td>
                   <td className="px-3 py-2.5"><span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">{e.branch}</span></td>
                   <td className="px-3 py-2.5"><div className="text-xs text-slate-600">{e.fromLoc}</div><div className="text-xs text-slate-400">↓ {e.toLoc}</div></td>
@@ -660,7 +926,7 @@ function EntriesPage({ onNew, onEdit }) {
                   <span className="font-extrabold">{e.vehicleNo}</span>
                   <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">{e.branch}</span>
                 </div>
-                {e.collectionName && <div className="text-xs font-semibold text-amber-700 mt-0.5">{e.collectionName}</div>}
+                {e.keyCompany && <div className="mt-1"><CompanyBadge keyCompany={e.keyCompany} subCompany={e.subCompany} zone={e.zone} size="xs"/></div>}
                 <div className="text-xs text-slate-500 mt-0.5">{e.id} · {fmtDate(e.date)}</div>
               </div>
               <StatusPill status={e.status}/>
@@ -697,8 +963,7 @@ function SearchableDropdown({ options, value, onChange, placeholder }) {
   const ref = useRef(null);
   useEffect(() => {
     const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
+    document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h);
   }, []);
   const filtered = options.filter(o=>o.toLowerCase().includes(query.toLowerCase()));
   return (
@@ -725,17 +990,14 @@ function SearchableDropdown({ options, value, onChange, placeholder }) {
 }
 
 /* =========================================================================
-   ENTRY FORM — single entry + Excel bulk upload tabs
+   ENTRY FORM
    ========================================================================= */
 function EntryForm({ entry, onClose }) {
-  const { addEntry, addEntries, updateEntry, deleteEntry, entries } = useData();
   const isEdit = !!entry;
-  const [tab, setTab] = useState(isEdit ? 'single' : 'single'); // 'single' | 'bulk'
-
+  const [tab, setTab] = useState('single');
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-0 md:p-6 overflow-y-auto fade-in">
       <div className="bg-white w-full max-w-2xl md:rounded-2xl shadow-2xl max-h-[95vh] flex flex-col slide-up">
-        {/* Header */}
         <div className="px-5 md:px-6 py-4 border-b-2 border-amber-200 flex items-center justify-between sticky top-0 bg-white md:rounded-t-2xl">
           <div>
             <div className="font-mono text-[10px] tracking-widest text-amber-700">{isEdit?'EDIT ENTRY':'NEW ENTRY'}</div>
@@ -745,8 +1007,6 @@ function EntryForm({ entry, onClose }) {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
-
-        {/* Tabs — only show when creating */}
         {!isEdit && (
           <div className="flex border-b border-amber-200 px-5 md:px-6 gap-1 bg-amber-50/40">
             <button onClick={()=>setTab('single')}
@@ -755,14 +1015,11 @@ function EntryForm({ entry, onClose }) {
             </button>
             <button onClick={()=>setTab('bulk')}
               className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${tab==='bulk'?'border-amber-500 text-amber-800':'border-transparent text-slate-500 hover:text-slate-700'}`}>
-              📊 Bulk Upload (Excel)
+              📊 Bulk Upload
             </button>
           </div>
         )}
-
-        {tab==='single'
-          ? <SingleEntryForm entry={entry} onClose={onClose} isEdit={isEdit}/>
-          : <BulkUploadForm onClose={onClose}/>}
+        {tab==='single' ? <SingleEntryForm entry={entry} onClose={onClose} isEdit={isEdit}/> : <BulkUploadForm onClose={onClose}/>}
       </div>
     </div>
   );
@@ -770,34 +1027,45 @@ function EntryForm({ entry, onClose }) {
 
 /* ---- Single entry form ---- */
 function SingleEntryForm({ entry, onClose, isEdit }) {
-  const { addEntry, updateEntry, deleteEntry, entries } = useData();
+  const { addEntry, updateEntry, deleteEntry } = useData();
   const [form, setForm] = useState(entry
-    ? {...entry, collectionName: entry.collectionName||''}
-    : { type:'collection', date:todayStr(), collectionName:'', vehicleNo:'', fromLoc:'', toLoc:'', branch:'', shift:'Day', incharge:'', driverName:'', driverMobile:'', outTime:'', inTime:'', status:'transit', remarks:'' }
+    ? { ...entry }
+    : {
+        type:'collection', date:todayStr(), collectionName:'',
+        keyCompany:'', subCompany:'', zone:'',
+        vehicleNo:'', fromLoc:'', toLoc:'', branch:'', shift:'Day',
+        incharge:'', driverName:'', driverMobile:'',
+        outTime:'', inTime:'', status:'transit', remarks:''
+      }
   );
-  const [errors,  setErrors]  = useState({});
-  const [saving,  setSaving]  = useState(false);
+  const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
 
   const setNow = (field) => {
-    const d = new Date(), p = n => String(n).padStart(2,'0');
-    setForm({...form, [field]: `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`});
+    const d=new Date(), p=n=>String(n).padStart(2,'0');
+    setForm({...form,[field]:`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`});
+  };
+
+  const handleCompanyChange = ({ keyCompany, subCompany, zone }) => {
+    setForm(f => ({ ...f, keyCompany, subCompany, zone }));
   };
 
   const validate = () => {
     const e = {};
-    if (!form.collectionName?.trim()) e.collectionName='Required';
-    if (!form.vehicleNo.trim())       e.vehicleNo='Required';
-    if (!form.branch)                 e.branch='Required';
-    if (!form.fromLoc.trim())         e.fromLoc='Required';
-    if (!form.toLoc.trim())           e.toLoc='Required';
-    if (!form.incharge)               e.incharge='Required';
-    if (!form.driverName.trim())      e.driverName='Required';
-    if (!form.driverMobile.trim())    e.driverMobile='Required';
-    if (!form.outTime)                e.outTime='Required';
+    if (!form.keyCompany)           e.keyCompany='Required';
+    if (!form.subCompany)           e.subCompany='Required';
+    if (!form.zone)                 e.zone='Required';
+    if (!form.vehicleNo.trim())     e.vehicleNo='Required';
+    if (!form.branch)               e.branch='Required';
+    if (!form.fromLoc.trim())       e.fromLoc='Required';
+    if (!form.toLoc.trim())         e.toLoc='Required';
+    if (!form.incharge)             e.incharge='Required';
+    if (!form.driverName.trim())    e.driverName='Required';
+    if (!form.driverMobile.trim())  e.driverMobile='Required';
+    if (!form.outTime)              e.outTime='Required';
     if (form.status==='delivered'&&!form.inTime) e.inTime='Required for delivered';
     if (form.inTime&&form.outTime&&new Date(form.inTime)<new Date(form.outTime)) e.inTime='Must be after out-time';
-    setErrors(e);
-    return Object.keys(e).length===0;
+    setErrors(e); return Object.keys(e).length===0;
   };
 
   const save = async () => {
@@ -810,7 +1078,7 @@ function SingleEntryForm({ entry, onClose, isEdit }) {
     } catch(err) { alert('Save failed: '+err.message); setSaving(false); }
   };
 
-  const markDelivered = () => setForm(f=>({...f, status:'delivered', inTime: f.inTime||toLocalInput(new Date().toISOString())}));
+  const markDelivered = () => setForm(f=>({...f,status:'delivered',inTime:f.inTime||toLocalInput(new Date().toISOString())}));
 
   const remove = async () => {
     if (!confirm('Delete this entry?')) return;
@@ -820,29 +1088,33 @@ function SingleEntryForm({ entry, onClose, isEdit }) {
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto px-5 md:px-6 py-5 space-y-4">
-        {/* Collection badge */}
-        <div className="flex items-center gap-3 bg-blue-50 border-2 border-blue-200 rounded-xl px-4 py-3">
-          <span className="text-2xl">📥</span>
-          <div><div className="font-extrabold text-blue-900">Collection</div><div className="text-xs text-blue-600">Inbound goods to branch / hub</div></div>
+      <div className="flex-1 overflow-y-auto px-5 md:px-6 py-5 space-y-5">
+
+        <div className="bg-slate-50 border-2 border-slate-200 rounded-xl p-4">
+          <div className="font-mono text-[10px] tracking-widest text-slate-500 font-bold mb-3">COMPANY / ZONE ASSIGNMENT</div>
+          <CompanySelector
+            keyCompany={form.keyCompany}
+            subCompany={form.subCompany}
+            zone={form.zone}
+            onChange={handleCompanyChange}
+            errors={{ keyCompany: errors.keyCompany, subCompany: errors.subCompany, zone: errors.zone }}
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Field label="Collection Name" error={errors.collectionName} required>
-            <input value={form.collectionName||''} onChange={e=>setForm({...form,collectionName:e.target.value})} placeholder="e.g. Morning Pickup Run" className="w-full px-3 py-2.5 border border-slate-300 rounded-lg"/>
-          </Field>
           <Field label="Vehicle No." error={errors.vehicleNo} required>
             <input value={form.vehicleNo} onChange={e=>setForm({...form,vehicleNo:e.target.value.toUpperCase()})} placeholder="TN-09-AB-1234" className="w-full px-3 py-2.5 border border-slate-300 rounded-lg font-mono"/>
           </Field>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Field label="Date" required>
             <input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} className="w-full px-3 py-2.5 border border-slate-300 rounded-lg"/>
           </Field>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Field label="Branch" error={errors.branch} required>
             <SearchableDropdown options={BRANCHES} value={form.branch} onChange={v=>setForm({...form,branch:v})} placeholder="Select branch"/>
           </Field>
+          <div></div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -936,32 +1208,34 @@ function SingleEntryForm({ entry, onClose, isEdit }) {
 }
 
 /* =========================================================================
-   BULK UPLOAD (Excel / CSV)
+   BULK UPLOAD
    ========================================================================= */
 function BulkUploadForm({ onClose }) {
   const { addEntries } = useData();
-  const [rows,     setRows]     = useState([]); // parsed rows ready to preview
-  const [errors,   setErrors]   = useState([]); // per-row errors
-  const [uploading,setUploading]= useState(false);
-  const [dragOver, setDragOver] = useState(false);
+  const [rows,      setRows]      = useState([]);
+  const [errors,    setErrors]    = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver,  setDragOver]  = useState(false);
   const fileRef = useRef(null);
 
-  /* --- column aliases (flexible header matching) --- */
   const colMap = {
     date:           ['date','Date','DATE'],
-    collectionName: ['collection name','collection_name','Collection Name','Collection','COLLECTION NAME'],
-    vehicleNo:      ['vehicle no','vehicle_no','Vehicle No','vehicleno','Vehicle','VEHICLE NO','vehicle no.'],
+    collectionName: ['collection name','Collection Name','Collection'],
+    keyCompany:     ['key company','key_company','Key Company','KEY COMPANY'],
+    subCompany:     ['sub company','sub_company','Sub Company','SUB COMPANY'],
+    zone:           ['zone','Zone','ZONE'],
+    vehicleNo:      ['vehicle no','vehicle_no','Vehicle No','Vehicle','VEHICLE NO'],
     branch:         ['branch','Branch','BRANCH'],
-    fromLoc:        ['from','from company','from_company','from loc','From','FROM','From Company'],
-    toLoc:          ['to','to branch','to_branch','to loc','To','TO','To Branch'],
+    fromLoc:        ['from','from company','From','From Company'],
+    toLoc:          ['to','to branch','To','To Branch'],
     shift:          ['shift','Shift','SHIFT'],
-    incharge:       ['incharge','in-charge','Incharge','shift incharge','Shift Incharge','INCHARGE'],
-    driverName:     ['driver name','driver_name','Driver Name','driver','Driver','DRIVER NAME'],
-    driverMobile:   ['mobile','mobile number','Mobile','Mobile Number','driver mobile','Driver Mobile','MOBILE'],
-    outTime:        ['out time','out_time','Out Time','out','OUT TIME'],
-    inTime:         ['in time','in_time','In Time','in','IN TIME'],
+    incharge:       ['incharge','Incharge','INCHARGE'],
+    driverName:     ['driver name','driver_name','Driver Name','Driver'],
+    driverMobile:   ['mobile','mobile number','Mobile','Mobile Number'],
+    outTime:        ['out time','out_time','Out Time'],
+    inTime:         ['in time','in_time','In Time'],
     status:         ['status','Status','STATUS'],
-    remarks:        ['remarks','Remarks','REMARKS','notes','Notes'],
+    remarks:        ['remarks','Remarks','Notes'],
   };
 
   const resolveHeader = (raw) => {
@@ -979,10 +1253,8 @@ function BulkUploadForm({ onClose }) {
         const wb = XLSX.read(ev.target.result, { type:'binary', cellDates:true });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const raw = XLSX.utils.sheet_to_json(ws, { defval:'' });
-
         if (raw.length === 0) { alert('Sheet is empty.'); return; }
 
-        // map headers
         const sample = raw[0];
         const headerMap = {};
         for (const key of Object.keys(sample)) {
@@ -990,128 +1262,143 @@ function BulkUploadForm({ onClose }) {
           if (field) headerMap[field] = key;
         }
 
-        const parsed = [];
-        const errs   = [];
-
+        const parsed = [], errs = [];
         raw.forEach((row, idx) => {
-          const get = (field) => {
-            const key = headerMap[field];
-            return key ? String(row[key]||'').trim() : '';
-          };
-
-          // date handling — XLSX may give a JS Date object
+          const get = (field) => { const key = headerMap[field]; return key ? String(row[key]||'').trim() : ''; };
           let dateVal = get('date');
-          if (!dateVal) {
-            const key = headerMap['date'];
-            if (key && row[key] instanceof Date) {
-              dateVal = row[key].toISOString().slice(0,10);
-            }
-          }
-          if (dateVal && dateVal.includes('/')) {
-            // try dd/mm/yyyy
-            const [d,m,y] = dateVal.split('/');
-            if (y) dateVal = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
-          }
+          if (!dateVal) { const key=headerMap['date']; if(key&&row[key] instanceof Date) dateVal=row[key].toISOString().slice(0,10); }
+          if (dateVal && dateVal.includes('/')) { const [d,m,y]=dateVal.split('/'); if(y) dateVal=`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`; }
 
           const rowErrs = [];
-          if (!dateVal)         rowErrs.push('date missing');
+          if (!dateVal)           rowErrs.push('date missing');
           if (!get('vehicleNo'))  rowErrs.push('vehicle no missing');
           if (!get('fromLoc'))    rowErrs.push('from location missing');
           if (!get('toLoc'))      rowErrs.push('to location missing');
 
-          const shift = get('shift') || 'Day';
-          if (!SHIFTS.includes(shift)) rowErrs.push(`invalid shift "${shift}" (use Day or Night)`);
+          const keyCompany = get('keyCompany');
+          if (keyCompany && !KEY_COMPANY_NAMES.includes(keyCompany)) rowErrs.push(`unknown key company "${keyCompany}"`);
+          // ✅ CHANGE 2: sub-company is free-text — no predefined validation applied
+          const subCompany = get('subCompany');
+          const zone = get('zone');
+          if (zone && !ZONES.includes(zone)) rowErrs.push(`unknown zone "${zone}" (use Zone 1-4)`);
 
+          const shift = get('shift') || 'Day';
+          if (!SHIFTS.includes(shift)) rowErrs.push(`invalid shift "${shift}"`);
           const branch = get('branch');
           if (branch && !BRANCHES.includes(branch)) rowErrs.push(`unknown branch "${branch}"`);
-
           if (rowErrs.length) errs.push({ row: idx+2, msgs: rowErrs });
 
-          // parse time strings like "08:30" or "08:30 AM"
           const parseTime = (timeStr, refDate) => {
             if (!timeStr || timeStr==='—') return null;
             if (timeStr instanceof Date) return timeStr.toISOString();
-            // "HH:MM" or "HH:MM AM/PM"
-            const t = String(timeStr).trim();
-            if (!t) return null;
+            const t = String(timeStr).trim(); if (!t) return null;
             const base = refDate || dateVal || todayStr();
-            try {
-              const d = new Date(`${base}T${t.length<=5 ? t+':00' : t}`);
-              if (!isNaN(d)) return d.toISOString();
-            } catch(_) {}
+            try { const d = new Date(`${base}T${t.length<=5?t+':00':t}`); if (!isNaN(d)) return d.toISOString(); } catch(_) {}
             return null;
           };
 
           parsed.push({
-            id: genId(),
-            date: dateVal,
-            type: 'collection',
+            id: genId(), date: dateVal, type: 'collection',
             collectionName: get('collectionName'),
+            keyCompany, subCompany, zone,
             vehicleNo: get('vehicleNo').toUpperCase(),
-            branch: branch,
-            fromLoc: get('fromLoc'),
-            toLoc: get('toLoc'),
-            shift: shift,
-            incharge: get('incharge'),
-            driverName: get('driverName'),
-            driverMobile: get('driverMobile'),
+            branch, fromLoc: get('fromLoc'), toLoc: get('toLoc'),
+            shift, incharge: get('incharge'),
+            driverName: get('driverName'), driverMobile: get('driverMobile'),
             outTime: parseTime(get('outTime'), dateVal),
             inTime:  parseTime(get('inTime'),  dateVal),
             status: (get('status')||'transit').toLowerCase().includes('deliver') ? 'delivered' : 'transit',
-            remarks: get('remarks'),
-            createdAt: new Date().toISOString(),
+            remarks: get('remarks'), createdAt: new Date().toISOString(),
             _rowErrs: rowErrs,
           });
         });
-
-        setRows(parsed);
-        setErrors(errs);
-      } catch(e) {
-        alert('Could not read file: '+e.message);
-      }
+        setRows(parsed); setErrors(errs);
+      } catch(e) { alert('Could not read file: '+e.message); }
     };
     reader.readAsBinaryString(file);
   };
 
   const handleFile = (file) => {
     if (!file) return;
-    const ok = file.name.match(/\.(xlsx|xls|csv)$/i);
-    if (!ok) { alert('Please upload an .xlsx, .xls, or .csv file.'); return; }
+    if (!file.name.match(/\.(xlsx|xls|csv)$/i)) { alert('Please upload an .xlsx, .xls, or .csv file.'); return; }
     parseFile(file);
   };
 
   const upload = async () => {
-    const validRows = rows.filter(r => r._rowErrs.length===0);
+    const validRows = rows.filter(r=>r._rowErrs.length===0);
     if (validRows.length===0) { alert('No valid rows to upload.'); return; }
     setUploading(true);
-    try {
-      await addEntries(validRows.map(({_rowErrs, ...r}) => r));
-      onClose();
-    } catch(e) { alert('Upload failed: '+e.message); setUploading(false); }
+    try { await addEntries(validRows.map(({_rowErrs,...r})=>r)); onClose(); }
+    catch(e) { alert('Upload failed: '+e.message); setUploading(false); }
   };
 
   const downloadTemplate = () => {
-    const ws = XLSX.utils.aoa_to_sheet([
-      ['Date','Collection Name','Vehicle No','Branch','From Company','To Branch','Shift','Incharge','Driver Name','Mobile Number','Out Time','In Time','Status','Remarks'],
-      ['2026-05-13','Morning Run','TN-09-AB-1234','TVK','Sundaram Textiles','TVK Hub','Day','Vinoth','Suresh Kumar','+91-98400-11111','07:30','09:45','delivered',''],
-      ['2026-05-13','Evening Pickup','TN-09-CD-5678','RNT','Anand Electronics','RNT Hub','Night','Mani','Raj Pillai','+91-98400-22222','20:00','','transit','COD order'],
-    ]);
-    ws['!cols'] = Array(14).fill({ wch:20 });
+    const headers = ['Date','Key Company','Sub Company','Zone','Vehicle No','Branch','From Company','To Branch','Shift','Incharge','Driver Name','Mobile Number','Out Time','In Time','Status','Remarks'];
+    const sample1 = ['2026-05-15','SDF','SDF Plant A','Zone 1','TN-09-AB-1234','TVK','Sundaram Textiles','TVK Hub','Day','Vinoth','Suresh Kumar','+91-98400-11111','07:30','09:45','delivered',''];
+    const sample2 = ['2026-05-15','CAPARO','Any Custom Sub Company Name','Zone 2','TN-09-CD-5678','RNT','CAPARO Chennai','RNT Hub','Night','Mani','Raj Pillai','+91-98400-22222','20:00','','transit','COD order'];
+    const sample3 = ['2026-05-15','TAFE MDU','TAFE MDU Main Plant','Zone 3','TN-45-CD-9988','MDU','TAFE Madurai','MDU Hub','Day','Kumar','Senthil','+91-98400-33333','08:15','10:30','delivered',''];
+
+    const ws = XLSX.utils.aoa_to_sheet([headers, sample1, sample2, sample3]);
+    ws['!cols'] = Array(headers.length).fill({ wch:20 });
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Entries');
+
+    const listData = [
+      ['Key Companies', ...KEY_COMPANY_NAMES],
+      ['Zones',         ...ZONES],
+      ['Branches',      ...BRANCHES],
+      ['Shifts',        ...SHIFTS],
+      ['Status',        'transit', 'delivered'],
+    ];
+    const wsLists = XLSX.utils.aoa_to_sheet(listData);
+    wsLists['!cols'] = Array(10).fill({ wch:18 });
+    XLSX.utils.book_append_sheet(wb, wsLists, '_Lists');
+
+    const keyCoList = KEY_COMPANY_NAMES.join(', ');
+    const zoneList = ZONES.join(', ');
+    const branchList = BRANCHES.join(', ');
+    const shiftList = SHIFTS.join(', ');
+
+    const instrData = [
+      ['📋 INSTRUCTIONS — Uddhava Logistics Bulk Upload Template'],
+      [''],
+      ['Column', 'Field', 'Required', 'Valid Values / Notes'],
+      ['A', 'Date', 'Yes', 'YYYY-MM-DD format (e.g. 2026-05-15)'],
+      ['B', 'Key Company', 'Yes', keyCoList],
+      ['C', 'Sub Company', 'Yes', 'Type ANY free-text company name (no predefined list)'],
+      ['D', 'Zone', 'Yes', zoneList],
+      ['E', 'Vehicle No', 'Yes', 'e.g. TN-09-AB-1234'],
+      ['F', 'Branch', 'No', branchList],
+      ['G', 'From Company', 'Yes', 'Vendor / pickup location'],
+      ['H', 'To Branch', 'Yes', 'Destination hub or branch'],
+      ['I', 'Shift', 'No', shiftList],
+      ['J', 'Incharge', 'No', 'Name of shift incharge'],
+      ['K', 'Driver Name', 'No', 'Full driver name'],
+      ['L', 'Mobile Number', 'No', '+91-XXXXX-XXXXX'],
+      ['M', 'Out Time', 'No', 'HH:MM format (e.g. 07:30)'],
+      ['N', 'In Time', 'No', 'HH:MM format (e.g. 09:45)'],
+      ['O', 'Status', 'No', 'transit or delivered'],
+      ['P', 'Remarks', 'No', 'Any notes'],
+    ];
+    const wsInstr = XLSX.utils.aoa_to_sheet(instrData);
+    wsInstr['!cols'] = [{wch:8},{wch:18},{wch:10},{wch:60}];
+    XLSX.utils.book_append_sheet(wb, wsInstr, 'Instructions');
+
     XLSX.writeFile(wb, 'uddhava-bulk-template.xlsx');
   };
 
   return (
     <>
       <div className="flex-1 overflow-y-auto px-5 md:px-6 py-5 space-y-5">
-        {/* Instructions */}
         <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 text-sm space-y-2">
-          <div className="font-bold text-blue-900 flex items-center gap-2">📊 Excel / CSV Bulk Upload</div>
-          <p className="text-blue-800">Upload multiple collection entries at once using an Excel (.xlsx) or CSV file.</p>
-          <div className="text-blue-700">
-            <strong>Required columns:</strong> Date, Vehicle No, From Company, To Branch<br/>
-            <strong>Optional:</strong> Collection Name, Branch, Shift, Incharge, Driver Name, Mobile Number, Out Time, In Time, Status, Remarks
+          <div className="font-bold text-blue-900">📊 Excel / CSV Bulk Upload</div>
+          <p className="text-blue-800">Upload multiple collection entries at once.</p>
+          <div className="text-blue-700 text-xs">
+            <strong>Key Company values:</strong> {KEY_COMPANY_NAMES.join(', ')}<br/>
+            <strong>Sub Company:</strong> Any free-text name (no restriction)<br/>
+            <strong>Zone values:</strong> {ZONES.join(', ')}<br/>
+            <strong>Required:</strong> Date, Vehicle No, From Company, To Branch
           </div>
           <button onClick={downloadTemplate}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold">
@@ -1120,24 +1407,19 @@ function BulkUploadForm({ onClose }) {
           </button>
         </div>
 
-        {/* Drop zone */}
         {rows.length === 0 && (
-          <div
-            className={`drop-zone rounded-xl p-8 text-center cursor-pointer ${dragOver?'drag-over':''}`}
+          <div className={`drop-zone rounded-xl p-8 text-center cursor-pointer ${dragOver?'drag-over':''}`}
             onDragOver={e=>{ e.preventDefault(); setDragOver(true); }}
             onDragLeave={()=>setDragOver(false)}
             onDrop={e=>{ e.preventDefault(); setDragOver(false); handleFile(e.dataTransfer.files[0]); }}
-            onClick={()=>fileRef.current?.click()}
-          >
+            onClick={()=>fileRef.current?.click()}>
             <div className="text-4xl mb-3">📂</div>
             <div className="font-bold text-slate-700 mb-1">Drop your Excel or CSV file here</div>
             <div className="text-sm text-slate-500">or click to browse</div>
-            <div className="mt-3 font-mono text-xs text-slate-400">.xlsx · .xls · .csv</div>
             <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={e=>handleFile(e.target.files[0])}/>
           </div>
         )}
 
-        {/* Preview */}
         {rows.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -1148,12 +1430,8 @@ function BulkUploadForm({ onClose }) {
                   {errors.length > 0 && <span className="text-red-600 font-semibold ml-2">{errors.length} with errors</span>}
                 </div>
               </div>
-              <button onClick={()=>{ setRows([]); setErrors([]); }} className="text-xs font-bold text-slate-500 hover:text-red-600 border border-slate-200 px-2 py-1 rounded-lg">
-                ✕ Clear
-              </button>
+              <button onClick={()=>{setRows([]);setErrors([]);}} className="text-xs font-bold text-slate-500 hover:text-red-600 border border-slate-200 px-2 py-1 rounded-lg">✕ Clear</button>
             </div>
-
-            {/* Error list */}
             {errors.length > 0 && (
               <div className="bg-red-50 border-2 border-red-200 rounded-xl p-3 space-y-1 max-h-32 overflow-y-auto">
                 {errors.map((e,i) => (
@@ -1163,13 +1441,11 @@ function BulkUploadForm({ onClose }) {
                 ))}
               </div>
             )}
-
-            {/* Preview table */}
             <div className="bg-white border-2 border-amber-200 rounded-xl overflow-hidden max-h-72 overflow-y-auto">
               <table className="w-full text-xs">
                 <thead className="bg-amber-100 sticky top-0">
                   <tr>
-                    {['#','Date','Collection','Vehicle','Branch','From','To','Shift','Driver','Status'].map(h=>(
+                    {['#','Date','Key Co.','Sub Co.','Zone','Vehicle','Branch','Status'].map(h=>(
                       <th key={h} className="px-2 py-2 text-left font-bold text-amber-900 whitespace-nowrap">{h}</th>
                     ))}
                     <th className="px-2 py-2"></th>
@@ -1177,22 +1453,16 @@ function BulkUploadForm({ onClose }) {
                 </thead>
                 <tbody className="divide-y divide-amber-100">
                   {rows.map((r,i) => (
-                    <tr key={i} className={r._rowErrs.length>0 ? 'bg-red-50' : 'hover:bg-amber-50/30'}>
+                    <tr key={i} className={r._rowErrs.length>0?'bg-red-50':'hover:bg-amber-50/30'}>
                       <td className="px-2 py-2 font-mono text-slate-400">{i+2}</td>
                       <td className="px-2 py-2">{r.date}</td>
-                      <td className="px-2 py-2 max-w-[100px] truncate">{r.collectionName||'—'}</td>
+                      <td className="px-2 py-2 font-bold">{r.keyCompany||'—'}</td>
+                      <td className="px-2 py-2 text-slate-600 max-w-[90px] truncate">{r.subCompany||'—'}</td>
+                      <td className="px-2 py-2">{r.zone ? <span className={`px-1.5 py-0.5 rounded font-bold ${ZONE_STYLES[r.zone]||''}`}>{r.zone}</span> : '—'}</td>
                       <td className="px-2 py-2 font-mono font-bold">{r.vehicleNo}</td>
                       <td className="px-2 py-2"><span className="bg-amber-100 text-amber-800 px-1.5 rounded font-mono font-bold">{r.branch||'—'}</span></td>
-                      <td className="px-2 py-2 max-w-[80px] truncate">{r.fromLoc}</td>
-                      <td className="px-2 py-2 max-w-[80px] truncate">{r.toLoc}</td>
-                      <td className="px-2 py-2">{r.shift}</td>
-                      <td className="px-2 py-2 max-w-[80px] truncate">{r.driverName||'—'}</td>
                       <td className="px-2 py-2"><StatusPill status={r.status}/></td>
-                      <td className="px-2 py-2">
-                        {r._rowErrs.length>0
-                          ? <span title={r._rowErrs.join(', ')} className="text-red-600 cursor-help">⚠</span>
-                          : <span className="text-green-600">✓</span>}
-                      </td>
+                      <td className="px-2 py-2">{r._rowErrs.length>0?<span title={r._rowErrs.join(', ')} className="text-red-600 cursor-help">⚠</span>:<span className="text-green-600">✓</span>}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1206,9 +1476,9 @@ function BulkUploadForm({ onClose }) {
         <div className="flex-1"></div>
         <button onClick={onClose} className="px-4 py-2.5 border-2 border-slate-300 rounded-lg text-sm font-bold hover:bg-white">Cancel</button>
         {rows.length > 0 && (
-          <button onClick={upload} disabled={uploading || rows.filter(r=>r._rowErrs.length===0).length===0}
+          <button onClick={upload} disabled={uploading||rows.filter(r=>r._rowErrs.length===0).length===0}
             className="btn-primary px-5 py-2.5 rounded-lg text-sm">
-            {uploading ? 'Uploading...' : `Upload ${rows.filter(r=>r._rowErrs.length===0).length} Entries`}
+            {uploading?'Uploading...':`Upload ${rows.filter(r=>r._rowErrs.length===0).length} Entries`}
           </button>
         )}
       </div>
@@ -1240,42 +1510,31 @@ function BarChart({ data }) {
   const gridLines = 5;
   const yLabels = Array.from({length:gridLines+1},(_,i)=>Math.round((gridLines-i)*gridMax/gridLines));
   const svgW = Math.max(480, data.length*80+PAD_L+PAD_R);
-
   return (
     <div className="w-full overflow-x-auto">
       <svg viewBox={`0 0 ${svgW} ${CHART_H}`} className="w-full" style={{minWidth:`${svgW}px`,height:`${CHART_H}px`}}>
         {yLabels.map((val,i)=>{
-          const y = PAD_T+(i/gridLines)*chartH;
-          return <g key={val}>
-            <line x1={PAD_L} x2={svgW-PAD_R} y1={y} y2={y} stroke="#fde68a" strokeWidth="1" strokeDasharray={i===gridLines?'0':'4 3'}/>
-            <text x={PAD_L-6} y={y+4} textAnchor="end" fontSize="9" fill="#94a3b8" fontFamily="JetBrains Mono,monospace">{val}</text>
-          </g>;
+          const y=PAD_T+(i/gridLines)*chartH;
+          return <g key={val}><line x1={PAD_L} x2={svgW-PAD_R} y1={y} y2={y} stroke="#fde68a" strokeWidth="1" strokeDasharray={i===gridLines?'0':'4 3'}/><text x={PAD_L-6} y={y+4} textAnchor="end" fontSize="9" fill="#94a3b8" fontFamily="JetBrains Mono,monospace">{val}</text></g>;
         })}
         {data.map((d,idx)=>{
-          const slotW = (svgW-PAD_L-PAD_R)/data.length;
-          const bw = (slotW*0.65)/3-1;
-          const x0 = PAD_L+idx*slotW+slotW*0.175;
-          const yBase = PAD_T+chartH;
-          const tH = chartH*(d.total/gridMax);
-          const dH = chartH*(d.delivered/gridMax);
-          const trH = chartH*(d.transit/gridMax);
-          const lbl = new Date(d.date).toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
-          const isH = hovered===idx;
+          const slotW=(svgW-PAD_L-PAD_R)/data.length;
+          const bw=(slotW*0.65)/3-1;
+          const x0=PAD_L+idx*slotW+slotW*0.175;
+          const yBase=PAD_T+chartH;
+          const tH=chartH*(d.total/gridMax), dH=chartH*(d.delivered/gridMax), trH=chartH*(d.transit/gridMax);
+          const lbl=new Date(d.date).toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+          const isH=hovered===idx;
           return (
             <g key={d.date} onMouseEnter={()=>setHovered(idx)} onMouseLeave={()=>setHovered(null)} style={{cursor:'pointer'}}>
               {isH && <rect x={PAD_L+idx*slotW} y={PAD_T} width={slotW} height={chartH} fill="#fef3c7" rx="4"/>}
-              {/* Total */}
               <rect x={x0} y={yBase-tH} width={bw} height={Math.max(tH,2)} rx="3" fill={isH?'#f59e0b':'#fbbf24'}/>
               <text x={x0+bw/2} y={yBase-tH-5} textAnchor="middle" fontSize="9" fontWeight="700" fill="#92400e" fontFamily="JetBrains Mono,monospace">{d.total}</text>
-              {/* Delivered */}
               <rect x={x0+bw+1} y={yBase-dH} width={bw} height={Math.max(dH,2)} rx="3" fill={isH?'#16a34a':'#22c55e'}/>
               {d.delivered>0 && <text x={x0+bw*1.5+1} y={yBase-dH-5} textAnchor="middle" fontSize="9" fontWeight="700" fill="#14532d" fontFamily="JetBrains Mono,monospace">{d.delivered}</text>}
-              {/* Transit */}
               <rect x={x0+bw*2+2} y={yBase-trH} width={bw} height={Math.max(trH,2)} rx="3" fill={isH?'#f59e0b60':'#fde68a'}/>
               {d.transit>0 && <text x={x0+bw*2.5+2} y={yBase-trH-5} textAnchor="middle" fontSize="9" fontWeight="700" fill="#78350f" fontFamily="JetBrains Mono,monospace">{d.transit}</text>}
-              {/* X label */}
               <text x={x0+bw*1.5} y={yBase+16} textAnchor="middle" fontSize="10" fill="#64748b" fontFamily="JetBrains Mono,monospace">{lbl}</text>
-              {/* Tooltip */}
               {isH && (
                 <g>
                   <rect x={Math.min(x0,svgW-140)} y={PAD_T} width="128" height="64" rx="6" fill="#1e293b" opacity="0.96"/>
@@ -1302,33 +1561,43 @@ function ReportsPage() {
   const { entries } = useData();
   const byDate = useMemo(()=>{
     const m={};
-    entries.forEach(e=>{
-      if(!m[e.date])m[e.date]={date:e.date,total:0,delivered:0,transit:0};
-      m[e.date].total++;
-      if(e.status==='delivered')m[e.date].delivered++; else m[e.date].transit++;
-    });
+    entries.forEach(e=>{ if(!m[e.date])m[e.date]={date:e.date,total:0,delivered:0,transit:0}; m[e.date].total++; if(e.status==='delivered')m[e.date].delivered++; else m[e.date].transit++; });
     return Object.values(m).sort((a,b)=>a.date.localeCompare(b.date));
   },[entries]);
+
   const byDriver = useMemo(()=>{
     const m={};
-    entries.forEach(e=>{
-      if(!m[e.driverName])m[e.driverName]={name:e.driverName,mobile:e.driverMobile,total:0,delivered:0,totalMin:0,done:0};
-      m[e.driverName].total++;
-      if(e.status==='delivered'){m[e.driverName].delivered++;if(e.outTime&&e.inTime){m[e.driverName].totalMin+=(new Date(e.inTime)-new Date(e.outTime))/60000;m[e.driverName].done++;}}
-    });
+    entries.forEach(e=>{ if(!m[e.driverName])m[e.driverName]={name:e.driverName,mobile:e.driverMobile,total:0,delivered:0,totalMin:0,done:0}; m[e.driverName].total++; if(e.status==='delivered'){m[e.driverName].delivered++;if(e.outTime&&e.inTime){m[e.driverName].totalMin+=(new Date(e.inTime)-new Date(e.outTime))/60000;m[e.driverName].done++;}} });
     return Object.values(m).map(d=>({...d,avgMin:d.done?Math.round(d.totalMin/d.done):0})).sort((a,b)=>b.delivered-a.delivered);
   },[entries]);
+
   const byBranch = useMemo(()=>BRANCHES.map(b=>({branch:b,trips:entries.filter(e=>e.branch===b).length,delivered:entries.filter(e=>e.branch===b&&e.status==='delivered').length})).filter(b=>b.trips>0).sort((a,b)=>b.trips-a.trips),[entries]);
+
   const byIncharge = useMemo(()=>INCHARGES.map(i=>({name:i,trips:entries.filter(e=>e.incharge===i).length,delivered:entries.filter(e=>e.incharge===i&&e.status==='delivered').length})).filter(x=>x.trips>0).sort((a,b)=>b.trips-a.trips),[entries]);
+
+  const byKeyCompany = useMemo(()=>KEY_COMPANY_NAMES.map(k=>{
+    const kEntries = entries.filter(e=>e.keyCompany===k);
+    const zoneBreakdown = ZONES.map(z=>({ zone:z, count:kEntries.filter(e=>e.zone===z).length })).filter(z=>z.count>0);
+    // ✅ Sub-company breakdown uses actual values from entries (not predefined list)
+    const subNames = [...new Set(kEntries.map(e=>e.subCompany).filter(Boolean))];
+    const subBreakdown = subNames.map(s=>({ sub:s, count:kEntries.filter(e=>e.subCompany===s).length })).sort((a,b)=>b.count-a.count);
+    return { key:k, total:kEntries.length, delivered:kEntries.filter(e=>e.status==='delivered').length, zoneBreakdown, subBreakdown };
+  }).filter(x=>x.total>0),[entries]);
+
+  const byZone = useMemo(()=>ZONES.map(z=>({
+    zone:z,
+    total:entries.filter(e=>e.zone===z).length,
+    delivered:entries.filter(e=>e.zone===z&&e.status==='delivered').length,
+  })).filter(z=>z.total>0),[entries]);
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       <div>
         <h2 className="text-2xl font-extrabold">Reports & Analytics</h2>
-        <p className="text-slate-500 text-sm">Performance across drivers, vehicles, branches, and incharges</p>
+        <p className="text-slate-500 text-sm">Performance across companies, zones, drivers, branches, and incharges</p>
       </div>
 
-      <div className="bg-white border-2 border-amber-200 rounded-xl p-5">
+      <div className="section-card p-5">
         <div className="flex items-start justify-between mb-5">
           <div><h3 className="font-extrabold text-slate-900">Daily Trip Volume</h3><p className="text-xs text-slate-500 mt-0.5">Collections vs delivered per day</p></div>
           <div className="flex items-center gap-3 text-xs">
@@ -1340,8 +1609,78 @@ function ReportsPage() {
         {byDate.length===0 ? <div className="h-48 flex items-center justify-center text-slate-400">No data yet</div> : <BarChart data={byDate}/>}
       </div>
 
+      {byKeyCompany.length > 0 && (
+        <div className="section-card p-5">
+          <h3 className="font-extrabold mb-4">Key Company Performance</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {byKeyCompany.map(kc => {
+              const c = getCompanyColor(kc.key);
+              const pct = kc.total?(kc.delivered/kc.total)*100:0;
+              return (
+                <div key={kc.key} className={`border-2 ${c.border} rounded-xl p-4`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className={`font-extrabold text-lg px-3 py-1 rounded-lg ${c.bg} ${c.text}`}>{kc.key}</span>
+                    <div className="text-right"><div className="font-extrabold text-2xl tabular-nums">{kc.total}</div><div className="text-xs text-slate-500">{kc.delivered} delivered</div></div>
+                  </div>
+                  <div className="h-2 bg-slate-100 rounded-full mb-3 overflow-hidden">
+                    <div className={`h-full rounded-full ${c.dot}`} style={{width:`${pct}%`}}></div>
+                  </div>
+                  {kc.zoneBreakdown.length>0 && (
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">By Zone</div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {kc.zoneBreakdown.map(z=>(
+                          <div key={z.zone} className={`flex justify-between items-center px-2 py-1 rounded-lg text-xs font-bold ${ZONE_STYLES[z.zone]||''}`}>
+                            <span>{z.zone}</span><span>{z.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {kc.subBreakdown.length>0 && (
+                    <div className="mt-2 space-y-1">
+                      <div className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">By Sub-Company</div>
+                      {kc.subBreakdown.map(s=>(
+                        <div key={s.sub} className="flex justify-between text-xs text-slate-600 bg-slate-50 px-2 py-1 rounded">
+                          <span className="truncate">{s.sub}</span><span className="font-bold ml-2 shrink-0">{s.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {byZone.length > 0 && (
+        <div className="section-card p-5">
+          <h3 className="font-extrabold mb-4">Zone Summary</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {ZONES.map(z=>{
+              const zd = byZone.find(x=>x.zone===z) || { total:0, delivered:0 };
+              const pct = zd.total?(zd.delivered/zd.total)*100:0;
+              const zStyle = ZONE_STYLES[z] || '';
+              return (
+                <div key={z} className={`border-2 rounded-xl p-4 ${zd.total>0?'border-current':'border-slate-200'} ${zStyle}`}>
+                  <div className={`text-xs font-bold mb-1 ${zStyle}`}>{z}</div>
+                  <div className="font-extrabold text-3xl tabular-nums text-slate-900">{zd.total}</div>
+                  <div className="text-xs text-slate-500">{zd.delivered} delivered</div>
+                  {zd.total>0 && (
+                    <div className="h-1.5 bg-slate-200 rounded-full mt-2 overflow-hidden">
+                      <div className="h-full bg-current rounded-full" style={{width:`${pct}%`}}></div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white border-2 border-amber-200 rounded-xl p-5">
+        <div className="section-card p-5">
           <h3 className="font-extrabold mb-4">Driver Performance</h3>
           <div className="space-y-2.5">
             {byDriver.map((d,i)=>(
@@ -1355,11 +1694,11 @@ function ReportsPage() {
           </div>
         </div>
 
-        <div className="bg-white border-2 border-amber-200 rounded-xl p-5">
+        <div className="section-card p-5">
           <h3 className="font-extrabold mb-4">Branch Activity</h3>
           <div className="space-y-2.5">
             {byBranch.map(b=>{
-              const pct = b.trips?(b.delivered/b.trips)*100:0;
+              const pct=b.trips?(b.delivered/b.trips)*100:0;
               return (
                 <div key={b.branch}>
                   <div className="flex justify-between text-sm mb-1">
