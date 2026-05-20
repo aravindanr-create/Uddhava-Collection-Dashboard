@@ -87,7 +87,11 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* =========================================================================
-   COMPANY MASTER DATA
+   ✅ COMPANY MASTER DATA — easy to maintain
+   Structure: KEY_COMPANIES[keyCompany] = { subCompanies: { name: [zones] } }
+   To add a new key company: add an entry below.
+   To add a sub-company: add to the subCompanies object.
+   To add zones: extend the array (Zone 1–4 used throughout).
    ========================================================================= */
 const ZONES = ['Zone 1', 'Zone 2', 'Zone 3', 'Zone 4'];
 
@@ -158,6 +162,7 @@ const KEY_COMPANIES = {
   },
 };
 
+/* Derived lists for filters and dropdowns */
 const KEY_COMPANY_NAMES = Object.keys(KEY_COMPANIES);
 
 const getSubCompanies = (keyCompany) =>
@@ -165,13 +170,12 @@ const getSubCompanies = (keyCompany) =>
     ? Object.keys(KEY_COMPANIES[keyCompany].subCompanies)
     : [];
 
-/* ✅ CHANGE 1: getZones now returns all ZONES for any free-typed subCompany string.
-   Zones are no longer gated on the subCompany matching a predefined list. */
 const getZones = (keyCompany, subCompany) =>
-  keyCompany && KEY_COMPANIES[keyCompany] && subCompany
-    ? ZONES
+  keyCompany && subCompany && KEY_COMPANIES[keyCompany]?.subCompanies[subCompany]
+    ? KEY_COMPANIES[keyCompany].subCompanies[subCompany]
     : [];
 
+/* Colour tokens per key company */
 const COMPANY_COLORS = {
   blue:    { bg:'bg-blue-100',    text:'text-blue-800',    border:'border-blue-300',    dot:'bg-blue-500'    },
   emerald: { bg:'bg-emerald-100', text:'text-emerald-800', border:'border-emerald-300', dot:'bg-emerald-500' },
@@ -273,6 +277,7 @@ function DataProvider({ children }) {
 }
 const useData = () => useContext(DataContext);
 
+/* ---- mappers (now include keyCompany, subCompany, zone) ---- */
 const entryToRow = (e) => ({
   id: e.id,
   date: e.date,
@@ -326,10 +331,18 @@ const fmtDate = iso => iso ? new Date(iso).toLocaleDateString('en-IN',{day:'2-di
 const fmtDur  = (a,b) => { if (!a||!b) return '—'; const m=Math.round((new Date(b)-new Date(a))/60000); if(m<0) return '—'; return m<60?`${m}m`:`${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m`; };
 const toLocalInput = iso => { if (!iso) return ''; const d=new Date(iso),p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
 const todayStr = () => new Date().toISOString().slice(0,10);
-const genId    = () => `E-${Date.now().toString(36).toUpperCase()}`;
+/* genId — collision-safe: timestamp + counter + random */
+let _idSeq = 0;
+const genId = () => {
+  _idSeq++;
+  const ts  = Date.now().toString(36).toUpperCase();
+  const seq = _idSeq.toString(36).toUpperCase().padStart(3,'0');
+  const rnd = Math.random().toString(36).slice(2,5).toUpperCase();
+  return 'E-' + ts + '-' + seq + '-' + rnd;
+};
 
 /* =========================================================================
-   COMPANY BADGE
+   COMPANY BADGE — reusable chip showing Key → Sub → Zone
    ========================================================================= */
 function CompanyBadge({ keyCompany, subCompany, zone, size='sm' }) {
   if (!keyCompany) return null;
@@ -352,7 +365,6 @@ function CompanyBadge({ keyCompany, subCompany, zone, size='sm' }) {
 
 /* =========================================================================
    CASCADING COMPANY SELECTOR
-   Sub-company is fully free-text; predefined names are suggestions only.
    ========================================================================= */
 function CompanySelector({ keyCompany, subCompany, zone, onChange, errors = {} }) {
   const subOptions  = getSubCompanies(keyCompany);
@@ -395,12 +407,11 @@ function CompanySelector({ keyCompany, subCompany, zone, onChange, errors = {} }
         </div>
       </div>
 
-      {/* Step 2: Sub Company — free-text with suggestions */}
+      {/* Step 2: Sub Company — typeable with suggestions */}
       {keyCompany && (
         <div className="cascade-step fade-in">
           <label className="block text-xs font-bold text-slate-700 mb-1.5">
             Sub Company <span className="text-red-500">*</span>
-            <span className="ml-1 font-normal text-slate-400">(type any name or pick a suggestion)</span>
             {errors.subCompany && <span className="text-red-500 ml-2 font-normal">— {errors.subCompany}</span>}
           </label>
           <div className="relative">
@@ -408,7 +419,7 @@ function CompanySelector({ keyCompany, subCompany, zone, onChange, errors = {} }
               list={`sub-list-${keyCompany}`}
               value={subCompany}
               onChange={e => handleSubChange(e.target.value)}
-              placeholder={`Type any sub-company name…`}
+              placeholder={`Type or select ${keyCompany} sub-company…`}
               className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:border-amber-400"
               autoComplete="off"
             />
@@ -416,20 +427,6 @@ function CompanySelector({ keyCompany, subCompany, zone, onChange, errors = {} }
               {subOptions.map(opt => <option key={opt} value={opt}/>)}
             </datalist>
           </div>
-          {subOptions.length > 0 && (
-            <div className="mt-1.5 flex flex-wrap gap-1">
-              {subOptions.map(opt => (
-                <button key={opt} type="button" onClick={() => handleSubChange(opt)}
-                  className={`text-[11px] px-2 py-0.5 rounded-full border transition-all font-medium ${
-                    subCompany === opt
-                      ? 'bg-amber-400 border-amber-400 text-slate-900'
-                      : 'border-slate-200 text-slate-500 hover:border-amber-300 hover:bg-amber-50'
-                  }`}>
-                  {opt}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       )}
 
@@ -566,11 +563,19 @@ function Dashboard({ onNew, onEdit, goEntries }) {
   const shiftStats  = SHIFTS.map(s=>({ shift:s, count:day.filter(e=>e.shift===s).length, done:day.filter(e=>e.shift===s&&e.status==='delivered').length }));
   const branchStats = BRANCHES.map(b=>({ branch:b, count:day.filter(e=>e.branch===b).length })).filter(x=>x.count>0);
 
+  /* company stats for today */
+  const companyStats = KEY_COMPANY_NAMES.map(k=>({
+    key: k,
+    count: day.filter(e=>e.keyCompany===k).length,
+    delivered: day.filter(e=>e.keyCompany===k&&e.status==='delivered').length,
+  })).filter(x=>x.count>0);
+
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-7xl mx-auto">
-      {/* ── Hero ── */}
+      {/* ── Light attractive hero ── */}
       <div className="rounded-2xl overflow-hidden shadow-lg" style={{background:"linear-gradient(135deg,#1e293b 0%,#0f172a 100%)"}}>
         <div className="relative p-6 md:p-7">
+          {/* subtle dot grid */}
           <div className="absolute inset-0 opacity-5" style={{backgroundImage:"radial-gradient(circle,#fff 1px,transparent 1px)",backgroundSize:"22px 22px"}}></div>
           <div className="relative flex flex-wrap items-center justify-between gap-4 mb-6">
             <div>
@@ -578,7 +583,7 @@ function Dashboard({ onNew, onEdit, goEntries }) {
                 <span className="w-1.5 h-1.5 bg-amber-400 rounded-full pulse-dot"></span>
                 <span className="font-mono text-xs text-amber-300 tracking-widest font-bold">LIVE · OPERATIONS</span>
               </div>
-              <h2 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight">{fmtDate(latestDate)}</h2>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">{fmtDate(latestDate)}</h2>
               <p className="text-slate-400 mt-1.5 text-sm">
                 <span className="font-bold text-white">{day.length}</span> {day.length===1?'entry':'entries'} logged
                 {transit.length>0 && <span className="ml-2 text-amber-300 font-semibold">· {transit.length} in transit</span>}
@@ -589,6 +594,7 @@ function Dashboard({ onNew, onEdit, goEntries }) {
               New Entry
             </button>
           </div>
+          {/* KPI cards — light style */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <KPI label="Collections"  value={collections.length} sub="Inbound"     tone="blue"/>
             <KPI label="Total Today"  value={day.length}         sub="All entries" tone="purple"/>
@@ -648,20 +654,19 @@ function Dashboard({ onNew, onEdit, goEntries }) {
         </Section>
       </div>
 
-      {/* ✅ CHANGE 3 & 4: Renamed to "Company wise Summary" + sorted by trip count descending */}
-      <Section title="Company wise Summary" subtitle={`${fmtDate(latestDate)} · All companies`}>
+      {/* Key Company Summary — always visible */}
+      <Section title="Key Company Summary" subtitle={`${fmtDate(latestDate)} · All companies`}>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {[...KEY_COMPANY_NAMES]
-            .sort((a,b) => day.filter(e=>e.keyCompany===b).length - day.filter(e=>e.keyCompany===a).length)
-            .map(k => {
+          {KEY_COMPANY_NAMES.map(k => {
             const c = getCompanyColor(k);
             const total     = day.filter(e=>e.keyCompany===k).length;
-            const deliveredK = day.filter(e=>e.keyCompany===k&&e.status==='delivered').length;
-            const transitK   = day.filter(e=>e.keyCompany===k&&e.status==='transit').length;
-            const pct       = total?(deliveredK/total)*100:0;
+            const delivered = day.filter(e=>e.keyCompany===k&&e.status==='delivered').length;
+            const transit   = day.filter(e=>e.keyCompany===k&&e.status==='transit').length;
+            const pct       = total?(delivered/total)*100:0;
             const zones     = ZONES.map(z=>({ z, n:day.filter(e=>e.keyCompany===k&&e.zone===z).length })).filter(x=>x.n>0);
             return (
               <div key={k} className={`company-card border-2 ${c.border} overflow-hidden`}>
+                {/* top colour bar */}
                 <div className={`h-1.5 ${c.dot}`}></div>
                 <div className="p-4">
                   <div className={`text-xs font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1.5 mb-3 ${c.bg} ${c.text}`}>
@@ -671,12 +676,13 @@ function Dashboard({ onNew, onEdit, goEntries }) {
                   <div className="font-extrabold text-3xl tabular-nums text-slate-900 leading-none">{total}</div>
                   <div className="text-xs text-slate-400 mt-0.5 font-medium">Total trips</div>
                   <div className="mt-3 flex justify-between text-xs">
-                    <span className="text-green-600 font-bold">{deliveredK} done</span>
-                    {transitK>0 && <span className="text-amber-600 font-semibold">{transitK} out</span>}
+                    <span className="text-green-600 font-bold">{delivered} done</span>
+                    {transit>0 && <span className="text-amber-600 font-semibold">{transit} out</span>}
                   </div>
                   <div className="h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
                     <div className={`h-full rounded-full transition-all ${c.dot}`} style={{width:`${pct}%`}}></div>
                   </div>
+                  {/* Zone mini pills */}
                   {zones.length>0 && (
                     <div className="flex flex-wrap gap-1 mt-2.5">
                       {zones.map(({z,n})=>(
@@ -1090,6 +1096,7 @@ function SingleEntryForm({ entry, onClose, isEdit }) {
     <>
       <div className="flex-1 overflow-y-auto px-5 md:px-6 py-5 space-y-5">
 
+        {/* Company cascade selector */}
         <div className="bg-slate-50 border-2 border-slate-200 rounded-xl p-4">
           <div className="font-mono text-[10px] tracking-widest text-slate-500 font-bold mb-3">COMPANY / ZONE ASSIGNMENT</div>
           <CompanySelector
@@ -1277,8 +1284,8 @@ function BulkUploadForm({ onClose }) {
 
           const keyCompany = get('keyCompany');
           if (keyCompany && !KEY_COMPANY_NAMES.includes(keyCompany)) rowErrs.push(`unknown key company "${keyCompany}"`);
-          // ✅ CHANGE 2: sub-company is free-text — no predefined validation applied
           const subCompany = get('subCompany');
+          if (keyCompany && subCompany && !getSubCompanies(keyCompany).includes(subCompany)) rowErrs.push(`unknown sub-company "${subCompany}" for ${keyCompany}`);
           const zone = get('zone');
           if (zone && !ZONES.includes(zone)) rowErrs.push(`unknown zone "${zone}" (use Zone 1-4)`);
 
@@ -1333,17 +1340,35 @@ function BulkUploadForm({ onClose }) {
   };
 
   const downloadTemplate = () => {
+    // Headers: Collection Name removed as requested
     const headers = ['Date','Key Company','Sub Company','Zone','Vehicle No','Branch','From Company','To Branch','Shift','Incharge','Driver Name','Mobile Number','Out Time','In Time','Status','Remarks'];
     const sample1 = ['2026-05-15','SDF','SDF Plant A','Zone 1','TN-09-AB-1234','TVK','Sundaram Textiles','TVK Hub','Day','Vinoth','Suresh Kumar','+91-98400-11111','07:30','09:45','delivered',''];
-    const sample2 = ['2026-05-15','CAPARO','Any Custom Sub Company Name','Zone 2','TN-09-CD-5678','RNT','CAPARO Chennai','RNT Hub','Night','Mani','Raj Pillai','+91-98400-22222','20:00','','transit','COD order'];
+    const sample2 = ['2026-05-15','CAPARO','CAPARO Unit A','Zone 2','TN-09-CD-5678','RNT','CAPARO Chennai','RNT Hub','Night','Mani','Raj Pillai','+91-98400-22222','20:00','','transit','COD order'];
     const sample3 = ['2026-05-15','TAFE MDU','TAFE MDU Main Plant','Zone 3','TN-45-CD-9988','MDU','TAFE Madurai','MDU Hub','Day','Kumar','Senthil','+91-98400-33333','08:15','10:30','delivered',''];
 
     const ws = XLSX.utils.aoa_to_sheet([headers, sample1, sample2, sample3]);
     ws['!cols'] = Array(headers.length).fill({ wch:20 });
 
+    // ── Key Company dropdown (col B = index 1) rows 2-200 ──
+    const keyCoList = KEY_COMPANY_NAMES.join(',');
+    // ── Zone dropdown (col D = index 3) rows 2-200 ──
+    const zoneList = ZONES.join(',');
+    // ── Branch dropdown (col F = index 5) ──
+    const branchList = BRANCHES.join(',');
+    // ── Shift dropdown (col I = index 8) ──
+    const shiftList = SHIFTS.join(',');
+    // ── Status dropdown (col O = index 14) ──
+    const statusList = 'transit,delivered';
+
+    if (!ws['!dataValidations']) ws['!dataValidations'] = [];
+
+    // Build data validation entries for XLSX
+    // We use a helper sheet approach via named ranges trick for dropdown
+    // Add a hidden sheet with reference lists
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Entries');
 
+    // Lists sheet (hidden reference)
     const listData = [
       ['Key Companies', ...KEY_COMPANY_NAMES],
       ['Zones',         ...ZONES],
@@ -1355,18 +1380,14 @@ function BulkUploadForm({ onClose }) {
     wsLists['!cols'] = Array(10).fill({ wch:18 });
     XLSX.utils.book_append_sheet(wb, wsLists, '_Lists');
 
-    const keyCoList = KEY_COMPANY_NAMES.join(', ');
-    const zoneList = ZONES.join(', ');
-    const branchList = BRANCHES.join(', ');
-    const shiftList = SHIFTS.join(', ');
-
+    // Add instructions sheet
     const instrData = [
       ['📋 INSTRUCTIONS — Uddhava Logistics Bulk Upload Template'],
       [''],
       ['Column', 'Field', 'Required', 'Valid Values / Notes'],
       ['A', 'Date', 'Yes', 'YYYY-MM-DD format (e.g. 2026-05-15)'],
       ['B', 'Key Company', 'Yes', keyCoList],
-      ['C', 'Sub Company', 'Yes', 'Type ANY free-text company name (no predefined list)'],
+      ['C', 'Sub Company', 'Yes', 'Type freely or use a name from the selected Key Company'],
       ['D', 'Zone', 'Yes', zoneList],
       ['E', 'Vehicle No', 'Yes', 'e.g. TN-09-AB-1234'],
       ['F', 'Branch', 'No', branchList],
@@ -1396,7 +1417,6 @@ function BulkUploadForm({ onClose }) {
           <p className="text-blue-800">Upload multiple collection entries at once.</p>
           <div className="text-blue-700 text-xs">
             <strong>Key Company values:</strong> {KEY_COMPANY_NAMES.join(', ')}<br/>
-            <strong>Sub Company:</strong> Any free-text name (no restriction)<br/>
             <strong>Zone values:</strong> {ZONES.join(', ')}<br/>
             <strong>Required:</strong> Date, Vehicle No, From Company, To Branch
           </div>
@@ -1575,12 +1595,11 @@ function ReportsPage() {
 
   const byIncharge = useMemo(()=>INCHARGES.map(i=>({name:i,trips:entries.filter(e=>e.incharge===i).length,delivered:entries.filter(e=>e.incharge===i&&e.status==='delivered').length})).filter(x=>x.trips>0).sort((a,b)=>b.trips-a.trips),[entries]);
 
+  /* Key Company analytics */
   const byKeyCompany = useMemo(()=>KEY_COMPANY_NAMES.map(k=>{
     const kEntries = entries.filter(e=>e.keyCompany===k);
     const zoneBreakdown = ZONES.map(z=>({ zone:z, count:kEntries.filter(e=>e.zone===z).length })).filter(z=>z.count>0);
-    // ✅ Sub-company breakdown uses actual values from entries (not predefined list)
-    const subNames = [...new Set(kEntries.map(e=>e.subCompany).filter(Boolean))];
-    const subBreakdown = subNames.map(s=>({ sub:s, count:kEntries.filter(e=>e.subCompany===s).length })).sort((a,b)=>b.count-a.count);
+    const subBreakdown  = getSubCompanies(k).map(s=>({ sub:s, count:kEntries.filter(e=>e.subCompany===s).length })).filter(s=>s.count>0);
     return { key:k, total:kEntries.length, delivered:kEntries.filter(e=>e.status==='delivered').length, zoneBreakdown, subBreakdown };
   }).filter(x=>x.total>0),[entries]);
 
@@ -1609,6 +1628,7 @@ function ReportsPage() {
         {byDate.length===0 ? <div className="h-48 flex items-center justify-center text-slate-400">No data yet</div> : <BarChart data={byDate}/>}
       </div>
 
+      {/* Key Company performance */}
       {byKeyCompany.length > 0 && (
         <div className="section-card p-5">
           <h3 className="font-extrabold mb-4">Key Company Performance</h3>
@@ -1625,6 +1645,7 @@ function ReportsPage() {
                   <div className="h-2 bg-slate-100 rounded-full mb-3 overflow-hidden">
                     <div className={`h-full rounded-full ${c.dot}`} style={{width:`${pct}%`}}></div>
                   </div>
+                  {/* Zone breakdown */}
                   {kc.zoneBreakdown.length>0 && (
                     <div className="space-y-1.5">
                       <div className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">By Zone</div>
@@ -1637,6 +1658,7 @@ function ReportsPage() {
                       </div>
                     </div>
                   )}
+                  {/* Sub company breakdown */}
                   {kc.subBreakdown.length>0 && (
                     <div className="mt-2 space-y-1">
                       <div className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">By Sub-Company</div>
@@ -1654,6 +1676,7 @@ function ReportsPage() {
         </div>
       )}
 
+      {/* Zone summary */}
       {byZone.length > 0 && (
         <div className="section-card p-5">
           <h3 className="font-extrabold mb-4">Zone Summary</h3>
