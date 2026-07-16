@@ -1,2000 +1,699 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
-<meta name="theme-color" content="#f59e0b"/>
-<title>Uddhava Logistics — Vehicle Allotment</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trip Settlement — Uddhava Logistics</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 <style>
-/* ── Design tokens ── */
-:root{
-  --bg:#fafaf8;--surface:#ffffff;--surface-2:#f5f5f0;--surface-3:#eeede8;
-  --ink:#1a1a16;--ink-2:#3d3d35;--muted:#6b6b60;--hint:#9b9b8c;
-  --border:#e4e4dc;--border-2:#d4d4cb;
-  --amber-50:#fffbeb;--amber-100:#fef3c7;--amber-200:#fde68a;--amber-300:#fcd34d;
-  --amber-400:#fbbf24;--amber-500:#f59e0b;--amber-600:#d97706;--amber-700:#b45309;
-  --amber-800:#92400e;--amber-900:#78350f;
-  --green-50:#f0fdf4;--green-100:#dcfce7;--green-500:#22c55e;--green-600:#16a34a;--green-700:#15803d;--green-800:#166534;
-  --blue-50:#eff6ff;--blue-100:#dbeafe;--blue-500:#3b82f6;--blue-600:#2563eb;--blue-700:#1d4ed8;--blue-800:#1e40af;
-  --red-50:#fef2f2;--red-100:#fee2e2;--red-500:#ef4444;--red-600:#dc2626;--red-700:#b91c1c;
-  --orange-50:#fff7ed;--orange-100:#ffedd5;--orange-500:#f97316;--orange-600:#ea580c;--orange-700:#c2410c;
-  --violet-50:#f5f3ff;--violet-100:#ede9fe;--violet-500:#8b5cf6;--violet-600:#7c3aed;--violet-700:#6d28d9;
-  --radius-sm:6px;--radius:10px;--radius-lg:16px;--radius-xl:22px;
-  --shadow-sm:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.05);
-  --shadow:0 4px 12px rgba(0,0,0,.08),0 1px 3px rgba(0,0,0,.05);
-  --shadow-lg:0 12px 32px rgba(0,0,0,.11),0 4px 8px rgba(0,0,0,.06);
-}
-*{box-sizing:border-box}
-html,body{
-  background:var(--bg);color:var(--ink);
-  font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.55;
-  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
-}
-.mono{font-family:'DM Mono',monospace}
-
-/* Scrollbar */
-::-webkit-scrollbar{width:6px;height:6px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:99px}
-::-webkit-scrollbar-thumb:hover{background:var(--hint)}
-
-/* Focus */
-:focus-visible{outline:2px solid var(--amber-500);outline-offset:2px;border-radius:var(--radius-sm)}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--amber-500)!important;box-shadow:0 0 0 3px rgba(245,158,11,.12)}
-
-/* Inputs base */
-input,select,textarea{
-  font-family:'DM Sans',sans-serif;font-size:14px;
-  border:1.5px solid var(--border);border-radius:var(--radius);
-  background:var(--surface);color:var(--ink);
-  padding:9px 12px;transition:border-color .15s,box-shadow .15s;
-  width:100%;
-}
-input::placeholder,textarea::placeholder{color:var(--hint)}
-select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6b60' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:32px}
-
-/* Animations */
-@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(1.35)}}
-@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
-@keyframes toastIn{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-.anim-fade-up{animation:fadeUp .3s cubic-bezier(.16,1,.3,1) backwards}
-.anim-fade{animation:fadeIn .2s ease}
-.anim-slide-down{animation:slideDown .25s cubic-bezier(.16,1,.3,1)}
-.pulse{animation:pulse 1.9s ease-in-out infinite}
-.spin{animation:spin .8s linear infinite}
-
-/* Card */
-.card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm)}
-.card-hover{transition:box-shadow .18s,transform .18s,border-color .18s}
-.card-hover:hover{box-shadow:var(--shadow);transform:translateY(-1px);border-color:var(--border-2)}
-
-/* Buttons */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-weight:600;font-size:13.5px;border-radius:var(--radius);cursor:pointer;transition:all .15s;border:1.5px solid transparent;padding:8px 16px;white-space:nowrap;letter-spacing:-.01em}
-.btn:disabled{opacity:.45;cursor:not-allowed;pointer-events:none}
-.btn-primary{background:var(--ink);color:var(--amber-300);border-color:var(--ink)}
-.btn-primary:hover{background:#000;box-shadow:0 4px 14px rgba(0,0,0,.22)}
-.btn-amber{background:var(--amber-500);color:var(--ink);border-color:var(--amber-600)}
-.btn-amber:hover{background:var(--amber-600)}
-.btn-ghost{background:transparent;color:var(--ink-2);border-color:var(--border)}
-.btn-ghost:hover{background:var(--surface-2);border-color:var(--border-2)}
-.btn-danger{background:var(--red-50);color:var(--red-700);border-color:var(--red-100)}
-.btn-danger:hover{background:var(--red-100)}
-.btn-sm{padding:5px 11px;font-size:12.5px}
-.btn-icon{padding:7px;border-radius:var(--radius-sm);aspect-ratio:1}
-
-/* Badge / pill */
-.badge{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;padding:3px 8px;border-radius:99px;white-space:nowrap}
-
-/* Header */
-.app-header{background:var(--surface);border-bottom:1.5px solid var(--border);position:sticky;top:0;z-index:40;box-shadow:0 1px 0 rgba(0,0,0,.04)}
-
-/* Tabs */
-.tab{padding:10px 16px;font-size:13.5px;font-weight:600;border-bottom:2.5px solid transparent;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
-.tab.active{color:var(--amber-700);border-bottom-color:var(--amber-500);background:linear-gradient(180deg,transparent,var(--amber-50))}
-.tab:hover:not(.active){color:var(--ink-2);background:var(--surface-2)}
-
-/* Table */
-.tbl{width:100%;border-collapse:collapse;font-size:13px}
-.tbl thead tr{background:var(--surface-2);border-bottom:1.5px solid var(--border)}
-.tbl th{padding:9px 12px;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;white-space:nowrap}
-.tbl tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
-.tbl tbody tr:hover{background:var(--amber-50)}
-.tbl td{padding:10px 12px;vertical-align:middle}
-
-/* Status chips */
-.status-created{background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd}
-.status-hold{background:#fef3c7;color:#b45309;border:1px solid #fde68a}
-.status-cancel{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca}
-.status-completed{background:#dcfce7;color:#15803d;border:1px solid #bbf7d0}
-/* Trip status chips */
-.status-transit{background:var(--amber-100);color:var(--amber-800);border:1px solid var(--amber-200)}
-.status-delivered{background:var(--green-100);color:var(--green-800);border:1px solid #bbf7d0}
-
-/* Company color dots */
-.cc-blue{background:#3b82f6}.cc-emerald{background:#10b981}.cc-violet{background:#8b5cf6}
-.cc-orange{background:#f97316}.cc-rose{background:#f43f5e}.cc-amber{background:#f59e0b}
-
-/* Drop zone */
-.drop-zone{border:2px dashed var(--border-2);border-radius:var(--radius-lg);transition:all .2s;cursor:pointer}
-.drop-zone:hover,.drop-zone.drag-over{border-color:var(--amber-400);background:var(--amber-50)}
-
-/* Divider */
-.divider{height:1px;background:var(--border);margin:0}
-
-/* Section header */
-.section-title{font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-.02em}
-.section-sub{font-size:12.5px;color:var(--muted)}
-
-/* KPI card */
-.kpi-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-sm);transition:box-shadow .18s,transform .18s}
-.kpi-card:hover{box-shadow:var(--shadow);transform:translateY(-1px)}
-
-/* Loader */
-.loader{width:18px;height:18px;border:2.5px solid var(--border);border-top-color:var(--amber-500);border-radius:50%}
-
-/* Collapsible filter bar */
-.filter-bar{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
-
-/* Mobile nav */
-@media(max-width:640px){
-  .desktop-only{display:none!important}
-  .mobile-fab{display:flex!important}
-}
-@media(min-width:641px){
-  .mobile-fab{display:none!important}
-  .mobile-only{display:none!important}
-}
+  :root{
+    --brand:#1d4e89;
+    --brand-dark:#123a66;
+    --accent:#e8871e;
+    --bg:#f4f6f9;
+  }
+  body{ background:var(--bg); font-family: "Segoe UI", system-ui, -apple-system, sans-serif; }
+  .navbar-brand{ font-weight:700; letter-spacing:.3px; }
+  .app-nav{ background:linear-gradient(90deg,var(--brand),var(--brand-dark)); }
+  .nav-link{ color:rgba(255,255,255,.85)!important; font-weight:500; }
+  .nav-link.active{ color:#fff!important; border-bottom:3px solid var(--accent); }
+  .card{ border:none; border-radius:12px; box-shadow:0 2px 10px rgba(20,30,60,.06); }
+  .stat-card{ border-radius:14px; color:#fff; padding:1.1rem 1.25rem; }
+  .stat-card .label{ font-size:.78rem; opacity:.9; text-transform:uppercase; letter-spacing:.5px; }
+  .stat-card .value{ font-size:1.5rem; font-weight:700; }
+  .bg-c1{ background:linear-gradient(135deg,#1d4e89,#2f6fb0); }
+  .bg-c2{ background:linear-gradient(135deg,#1f8a5b,#28b374); }
+  .bg-c3{ background:linear-gradient(135deg,#c0392b,#e0574a); }
+  .bg-c4{ background:linear-gradient(135deg,#8a5cb1,#a97bd0); }
+  .bg-c5{ background:linear-gradient(135deg,#b8860b,#d8a13a); }
+  .bg-c6{ background:linear-gradient(135deg,#455a64,#607d8b); }
+  .section-title{ font-weight:700; color:var(--brand-dark); }
+  .subsection-title{ font-weight:700; color:var(--brand); font-size:.95rem; border-left:4px solid var(--accent); padding-left:.5rem; }
+  .leg-row{ background:#f8f9fb; border-radius:10px; padding:.75rem; margin-bottom:.6rem; }
+  .table thead th{ background:var(--brand); color:#fff; font-weight:600; font-size:.8rem; white-space:nowrap; }
+  .table td{ vertical-align:middle; font-size:.84rem; }
+  .badge-excess-pos{ background:#1f8a5b; }
+  .badge-excess-neg{ background:#c0392b; }
+  .table-responsive{ border-radius:10px; overflow:hidden; }
+  .btn-brand{ background:var(--brand); border-color:var(--brand); color:#fff; }
+  .btn-brand:hover{ background:var(--brand-dark); border-color:var(--brand-dark); color:#fff; }
+  .settlement-card{ border-left:4px solid var(--brand); }
+  #printArea{ display:none; }
+  @media print{
+    body *{ visibility:hidden; }
+    #printArea, #printArea *{ visibility:visible; }
+    #printArea{ display:block; position:absolute; top:0; left:0; width:100%; }
+    .app-nav, .no-print{ display:none!important; }
+  }
+  .empty-hint{ color:#8a93a3; text-align:center; padding:2.5rem 1rem; }
+  .form-label{ font-weight:600; font-size:.85rem; color:#44506b; }
+  .tab-pane-wrap{ padding-top:1.25rem; }
+  .calc-box{ background:#f8f9fb; border-radius:10px; padding:.9rem; }
+  .calc-box .row-line{ display:flex; justify-content:space-between; padding:.15rem 0; font-size:.88rem; }
 </style>
 </head>
 <body>
-<div id="root"></div>
 
-<script type="text/babel" data-presets="react">
-const {
-  useState, useEffect, useRef, useMemo, createContext, useContext, useCallback, useReducer
-} = React;
-const { createClient } = supabase;
+<nav class="navbar navbar-expand-lg app-nav sticky-top no-print">
+  <div class="container-fluid px-4">
+    <span class="navbar-brand text-white"><i class="bi bi-truck"></i> Uddhava Logistics — Trip Settlement</span>
+    <button class="navbar-toggler bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navMenu">
+      <ul class="navbar-nav ms-auto" id="mainTabs" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-dash" type="button"><i class="bi bi-speedometer2"></i> Dashboard</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-new" type="button"><i class="bi bi-plus-circle"></i> New Trip Entry</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-list" type="button"><i class="bi bi-list-ul"></i> All Settlements</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-vehicles" type="button"><i class="bi bi-gear"></i> Vehicles</button></li>
+      </ul>
+    </div>
+  </div>
+</nav>
 
-/* ═══════════════════════════════════════════════════════
-   SUPABASE
-═══════════════════════════════════════════════════════ */
-const SUPABASE_URL = 'https://udsqghxnrsdclfxhgraz.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkc3FnaHhucnNkY2xmeGhncmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0ODY3OTcsImV4cCI6MjA5NDA2Mjc5N30.Ezl5qfpzRxGRtNofz3aieTIPuNKKE-Kf5cxrHN4uHdU';
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+<div class="container-fluid px-4 py-3 no-print">
+<div class="tab-content">
 
-/* ═══════════════════════════════════════════════════════
-   MASTER DATA
-═══════════════════════════════════════════════════════ */
-const ZONES = ['Zone 1','Zone 2','Zone 3','Zone 4'];
+  <!-- ================= DASHBOARD ================= -->
+  <div class="tab-pane fade show active tab-pane-wrap" id="tab-dash">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="section-title mb-0"><i class="bi bi-speedometer2"></i> Dashboard</h5>
+      <select class="form-select form-select-sm" style="width:auto" id="dashVehicleFilter" onchange="renderDashboard()">
+        <option value="">All Vehicles</option>
+      </select>
+    </div>
 
-const KEY_COMPANIES = {
-  'SDF':      { color:'blue',    subs:['SDF Plant A','SDF Plant B','SDF Warehouse 1','SDF Warehouse 2','SDF Distribution'] },
-  'HSR AL':   { color:'emerald', subs:['HSR AL Main','HSR AL Unit 1','HSR AL Unit 2','HSR AL Cold Store','HSR AL Dispatch'] },
-  'TENNOCO':  { color:'violet',  subs:['TENNOCO HQ','TENNOCO Factory 1','TENNOCO Factory 2','TENNOCO Godown','TENNOCO Transit Hub'] },
-  'TAFE DBR': { color:'orange',  subs:['TAFE DBR Assembly','TAFE DBR Parts','TAFE DBR Warehouse','TAFE DBR Outbound'] },
-  'TAFE MDU': { color:'rose',    subs:['TAFE MDU Main Plant','TAFE MDU Store','TAFE MDU Dispatch','TAFE MDU Returns'] },
-  'CAPARO':   { color:'amber',   subs:['CAPARO Unit A','CAPARO Unit B','CAPARO Press Shop','CAPARO Weld Shop','CAPARO Stores'] },
-};
-const KEY_COMPANY_NAMES = Object.keys(KEY_COMPANIES);
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-md-4 col-lg-2"><div class="stat-card bg-c1"><div class="label">Trip Payment</div><div class="value" id="statTrip">₹0</div></div></div>
+      <div class="col-6 col-md-4 col-lg-2"><div class="stat-card bg-c2"><div class="label">Extra Amount</div><div class="value" id="statExtra">₹0</div></div></div>
+      <div class="col-6 col-md-4 col-lg-2"><div class="stat-card bg-c3"><div class="label">Advance</div><div class="value" id="statAdvance">₹0</div></div></div>
+      <div class="col-6 col-md-4 col-lg-2"><div class="stat-card bg-c4"><div class="label">Total Payable</div><div class="value" id="statTotal">₹0</div></div></div>
+      <div class="col-6 col-md-4 col-lg-2"><div class="stat-card bg-c5"><div class="label">Diesel Used (L)</div><div class="value" id="statDiesel">0</div></div></div>
+      <div class="col-6 col-md-4 col-lg-2"><div class="stat-card bg-c6"><div class="label">Diesel Debit</div><div class="value" id="statDieselDebit">₹0</div></div></div>
+    </div>
 
-const getSubs   = (kc) => kc && KEY_COMPANIES[kc] ? KEY_COMPANIES[kc].subs : [];
-const getZones  = (kc, sc) => kc && sc && KEY_COMPANIES[kc] ? ZONES : [];
+    <div class="row g-3">
+      <div class="col-12">
+        <div class="card p-3">
+          <div class="fw-semibold mb-2"><i class="bi bi-fuel-pump"></i> Vehicle No Wise Diesel Consumption</div>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+              <thead><tr>
+                <th>Vehicle No</th><th>Trips</th><th>Total Km</th><th>Used Diesel (L)</th>
+                <th>Avg Mileage</th><th>Udd Diesel (L)</th><th>Excess/(Deficit)</th><th>Diesel Debit (₹)</th>
+              </tr></thead>
+              <tbody id="vehicleDieselTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
 
-const COMPANY_PALETTE = {
-  blue:    {dot:'#3b82f6', bg:'#eff6ff', text:'#1d4ed8', border:'#bfdbfe'},
-  emerald: {dot:'#10b981', bg:'#ecfdf5', text:'#047857', border:'#a7f3d0'},
-  violet:  {dot:'#8b5cf6', bg:'#f5f3ff', text:'#6d28d9', border:'#ddd6fe'},
-  orange:  {dot:'#f97316', bg:'#fff7ed', text:'#c2410c', border:'#fed7aa'},
-  rose:    {dot:'#f43f5e', bg:'#fff1f2', text:'#be123c', border:'#fecdd3'},
-  amber:   {dot:'#f59e0b', bg:'#fffbeb', text:'#b45309', border:'#fde68a'},
-};
-const cpal = (kc) => COMPANY_PALETTE[KEY_COMPANIES[kc]?.color] || COMPANY_PALETTE.amber;
+    <div class="row g-3 mt-1">
+      <div class="col-12">
+        <div class="card p-3">
+          <div class="fw-semibold mb-2"><i class="bi bi-list-ul"></i> Vehicle Trip Details</div>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+              <thead><tr>
+                <th>Date</th><th>Vehicle</th><th>Driver</th><th>Route</th><th>Km</th>
+                <th>Diesel (L)</th><th>Mileage</th><th>Amount</th>
+              </tr></thead>
+              <tbody id="tripDetailsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-const ZONE_STYLES = {
-  'Zone 1':{bg:'#dbeafe',text:'#1d4ed8'},
-  'Zone 2':{bg:'#dcfce7',text:'#15803d'},
-  'Zone 3':{bg:'#fef3c7',text:'#b45309'},
-  'Zone 4':{bg:'#fce7f3',text:'#be185d'},
-};
+  <!-- ================= NEW TRIP ENTRY (Settlement + Diesel combined) ================= -->
+  <div class="tab-pane fade tab-pane-wrap" id="tab-new">
+    <div class="card p-4">
+      <h5 class="section-title mb-3"><i class="bi bi-plus-circle"></i> New Trip Entry</h5>
 
-const BRANCHES  = ['TVK','RNT','HSR','MDU','SPR','CBM','DBR'];
-const INCHARGES = ['Vinoth','Mani','Kumar','Ajith','Ramu','Ravi'];
-const SHIFTS    = ['Day','Night'];
+      <div class="subsection-title mb-2">Trip Details</div>
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Driver Name</label>
+          <input type="text" class="form-control" id="f_driver" placeholder="e.g. Marutha Pandi">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Vehicle No</label>
+          <input type="text" class="form-control text-uppercase" id="f_vehicle" placeholder="e.g. TN12BT4406" oninput="onVehicleTyped()">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Date</label>
+          <input type="date" class="form-control" id="f_date">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Fixed Mileage (km/L)</label>
+          <input type="number" step="0.01" class="form-control" id="f_fixedMileage" value="4.5" oninput="updateDieselPreview()">
+        </div>
+        <div class="col-12">
+          <label class="form-label">Remarks</label>
+          <textarea class="form-control" id="f_remarks" rows="2" placeholder="Type anything you want here — loading, unloading, notes, instructions..."></textarea>
+        </div>
+      </div>
 
-/* Collection status lifecycle */
-const COLL_STATUSES = [
-  { key:'created',   label:'Created',   icon:'⬤', cls:'status-created' },
-  { key:'hold',      label:'Hold',      icon:'⏸', cls:'status-hold' },
-  { key:'cancel',    label:'Cancel',    icon:'✕', cls:'status-cancel' },
-  { key:'completed', label:'Completed', icon:'✓', cls:'status-completed' },
-];
+      <hr class="my-3">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="subsection-title mb-0">Trip Legs (From → To)</div>
+        <button class="btn btn-sm btn-outline-primary" onclick="addLegRow()"><i class="bi bi-plus"></i> Add Leg</button>
+      </div>
+      <div id="legsWrap"></div>
 
-/* Trip status */
-const TRIP_STATUSES = [
-  { key:'transit',   label:'In Transit', cls:'status-transit' },
-  { key:'delivered', label:'Delivered',  cls:'status-delivered' },
-];
+      <hr class="my-3">
+      <div class="subsection-title mb-2">Payment</div>
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Trip Payment (₹)</label>
+          <input type="number" class="form-control" id="f_tripPayment" value="0">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Extra Amount (₹)</label>
+          <input type="number" class="form-control" id="f_extraAmount" value="0">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Advance (₹)</label>
+          <input type="number" class="form-control" id="f_advance" value="0">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Total Payable (₹)</label>
+          <input type="text" class="form-control fw-bold" id="f_totalPreview" readonly value="0">
+        </div>
+      </div>
 
-/* ═══════════════════════════════════════════════════════
-   HELPERS
-═══════════════════════════════════════════════════════ */
-let _seq = 0;
-const genId = () => { _seq++; return 'E-'+Date.now().toString(36).toUpperCase()+'-'+_seq.toString(36).padStart(2,'0').toUpperCase()+'-'+Math.random().toString(36).slice(2,5).toUpperCase(); };
-const todayStr  = () => new Date().toISOString().slice(0,10);
-const pad2      = n  => String(n).padStart(2,'0');
-const toInput   = iso => { if(!iso) return ''; const d=new Date(iso); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
-const nowInput  = ()  => toInput(new Date().toISOString());
-const fmtDate   = iso => { if(!iso) return '—'; const d=new Date(iso); return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); };
-const fmtTime   = iso => { if(!iso) return '—'; const d=new Date(iso); return d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true}); };
-const fmtDur    = (a,b) => { if(!a||!b) return '—'; const m=Math.round((new Date(b)-new Date(a))/60000); if(m<0) return '—'; return m<60?`${m}m`:`${Math.floor(m/60)}h ${pad2(m%60)}m`; };
+      <hr class="my-3">
+      <div class="subsection-title mb-2">Diesel &amp; Mileage (this trip)</div>
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Start KM</label>
+          <input type="number" class="form-control" id="f_startKm" oninput="updateDieselPreview()">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">End KM</label>
+          <input type="number" class="form-control" id="f_endKm" oninput="updateDieselPreview()">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Used Diesel (L)</label>
+          <input type="number" step="0.01" class="form-control" id="f_usedDiesel" oninput="updateDieselPreview()">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">&nbsp;</label>
+          <div class="calc-box">
+            <div class="row-line"><span>Running Km</span><strong id="pv_km">0</strong></div>
+            <div class="row-line"><span>Mileage (Km÷Diesel)</span><strong id="pv_mileage">0</strong></div>
+            <div class="row-line"><span>Udd Diesel (Km÷Fixed)</span><strong id="pv_udd">0</strong></div>
+            <div class="row-line"><span>Excess/(Deficit)</span><strong id="pv_excess">0</strong></div>
+          </div>
+        </div>
+      </div>
 
-/* ═══════════════════════════════════════════════════════
-   DATA MAPPERS
-═══════════════════════════════════════════════════════ */
-const toRow = e => ({
-  id:             e.id,
-  date:           e.date,
-  type:           e.type           || 'collection',
-  collection_status: e.collStatus  || 'created',
-  key_company:    e.keyCompany     || '',
-  sub_company:    e.subCompany     || '',
-  zone:           e.zone           || '',
-  vehicle_no:     e.vehicleNo      || '',
-  from_loc:       e.fromLoc        || '',
-  to_loc:         e.toLoc          || '',
-  branch:         e.branch         || '',
-  shift:          e.shift          || 'Day',
-  incharge:       e.incharge       || '',
-  driver_name:    e.driverName     || '',
-  driver_mobile:  e.driverMobile   || '',
-  out_time:       e.outTime        || null,
-  in_time:        e.inTime         || null,
-  trip_status:    e.tripStatus     || 'transit',
-  remarks:        e.remarks        || '',
-  created_at:     e.createdAt      || new Date().toISOString(),
-});
-const fromRow = r => ({
-  id:           r.id,
-  date:         r.date,
-  type:         r.type,
-  collStatus:   r.collection_status || 'created',
-  keyCompany:   r.key_company  || '',
-  subCompany:   r.sub_company  || '',
-  zone:         r.zone         || '',
-  vehicleNo:    r.vehicle_no   || '',
-  fromLoc:      r.from_loc     || '',
-  toLoc:        r.to_loc       || '',
-  branch:       r.branch       || '',
-  shift:        r.shift        || 'Day',
-  incharge:     r.incharge     || '',
-  driverName:   r.driver_name  || '',
-  driverMobile: r.driver_mobile|| '',
-  outTime:      r.out_time,
-  inTime:       r.in_time,
-  tripStatus:   r.trip_status  || 'transit',
-  remarks:      r.remarks      || '',
-  createdAt:    r.created_at,
-});
+      <hr class="my-3">
+      <div class="subsection-title mb-2">Diesel Debit (optional — only if diesel purchased/debited)</div>
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Diesel Price That Day (₹/L)</label>
+          <input type="number" step="0.01" class="form-control" id="f_dieselPrice" oninput="updateDieselDebit()">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Diesel Debited Qty (L)</label>
+          <input type="number" step="0.01" class="form-control" id="f_dieselDebitQty" oninput="updateDieselDebit()">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Diesel Debit (₹)</label>
+          <input type="text" class="form-control fw-bold" id="f_dieselDebitPreview" readonly value="0">
+        </div>
+      </div>
 
-/* ═══════════════════════════════════════════════════════
-   DATA CONTEXT
-═══════════════════════════════════════════════════════ */
-const DataCtx = createContext(null);
-function DataProvider({ children }) {
-  const [entries, setEntries]     = useState([]);
-  const [connState, setConn]      = useState('connecting');
-  const [toast, setToast]         = useState(null);
-  const chanRef = useRef(null);
+      <div class="mt-4 d-flex gap-2">
+        <button class="btn btn-brand" onclick="saveSettlement()"><i class="bi bi-check-circle"></i> Save Trip Entry</button>
+        <button class="btn btn-outline-secondary" onclick="resetSettlementForm()"><i class="bi bi-arrow-counterclockwise"></i> Clear</button>
+      </div>
+    </div>
+  </div>
 
-  const showToast = (msg, kind='ok') => {
-    setToast({ msg, kind, id: Date.now() });
-    setTimeout(() => setToast(null), 3800);
+  <!-- ================= ALL SETTLEMENTS ================= -->
+  <div class="tab-pane fade tab-pane-wrap" id="tab-list">
+    <div class="card p-3">
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <h5 class="section-title mb-0"><i class="bi bi-list-ul"></i> All Settlements</h5>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <select class="form-select form-select-sm" id="listVehicleFilter" onchange="renderSettlementsList()">
+            <option value="">All Vehicles</option>
+          </select>
+          <label class="small text-muted mb-0">From</label>
+          <input type="date" class="form-control form-control-sm" style="width:auto" id="listFromDate" onchange="renderSettlementsList()">
+          <label class="small text-muted mb-0">To</label>
+          <input type="date" class="form-control form-control-sm" style="width:auto" id="listToDate" onchange="renderSettlementsList()">
+          <button class="btn btn-sm btn-outline-secondary" onclick="clearListFilters()"><i class="bi bi-x-circle"></i> Clear</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="printAll()"><i class="bi bi-printer"></i> Print</button>
+        </div>
+      </div>
+      <div id="settlementsListWrap"></div>
+    </div>
+  </div>
+
+  <!-- ================= VEHICLES ================= -->
+  <div class="tab-pane fade tab-pane-wrap" id="tab-vehicles">
+    <div class="row g-3">
+      <div class="col-lg-4">
+        <div class="card p-4">
+          <h5 class="section-title mb-3"><i class="bi bi-gear"></i> Add / Update Vehicle</h5>
+          <label class="form-label">Vehicle No</label>
+          <input type="text" class="form-control text-uppercase mb-2" id="v_vehicleNo" placeholder="e.g. TN12BT4406">
+          <label class="form-label">Default Fixed Mileage (km/L)</label>
+          <input type="number" step="0.01" class="form-control mb-3" id="v_fixedMileage" value="4.5">
+          <button class="btn btn-brand" onclick="saveVehicle()"><i class="bi bi-check-circle"></i> Save Vehicle</button>
+        </div>
+      </div>
+      <div class="col-lg-8">
+        <div class="card p-3">
+          <div class="fw-semibold mb-2">Vehicles</div>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+              <thead><tr><th>Vehicle No</th><th>Fixed Mileage (km/L)</th><th></th></tr></thead>
+              <tbody id="vehicleTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- Print area -->
+<div id="printArea"></div>
+
+<script>
+let settlements = [];
+let vehicles = [];
+let legCounter = 0;
+
+// ---------- Storage helpers ----------
+async function loadAll(){
+  try{ const r = await window.storage.get('settlements'); settlements = r ? JSON.parse(r.value) : []; }catch(e){ settlements = []; }
+  try{ const r = await window.storage.get('vehicles'); vehicles = r ? JSON.parse(r.value) : []; }catch(e){ vehicles = []; }
+}
+async function persist(key, data){
+  try{ await window.storage.set(key, JSON.stringify(data)); }catch(e){ console.error('storage error', e); }
+}
+
+// ---------- Utility ----------
+function fmtMoney(n){ return '₹' + (Math.round((n||0)*100)/100).toLocaleString('en-IN'); }
+function fmtNum(n, d=2){ return (Math.round((n||0)*Math.pow(10,d))/Math.pow(10,d)).toLocaleString('en-IN'); }
+function uid(){ return 'id_' + Date.now() + '_' + Math.floor(Math.random()*10000); }
+
+function vehicleFixedMileage(vehicleNo){
+  const v = vehicles.find(x => x.vehicleNo.toUpperCase() === (vehicleNo||'').toUpperCase());
+  return v ? v.fixedMileage : 4.5;
+}
+function onVehicleTyped(){
+  const v = document.getElementById('f_vehicle').value;
+  const match = vehicles.find(x => x.vehicleNo.toUpperCase() === v.toUpperCase());
+  if(match){ document.getElementById('f_fixedMileage').value = match.fixedMileage; updateDieselPreview(); }
+}
+
+function refreshVehicleDropdowns(){
+  const opts = vehicles.map(v => `<option value="${v.vehicleNo}">${v.vehicleNo}</option>`).join('');
+  const filterOpts = `<option value="">All Vehicles</option>` + opts;
+  document.getElementById('dashVehicleFilter').innerHTML = filterOpts;
+  document.getElementById('listVehicleFilter').innerHTML = filterOpts;
+}
+
+// ---------- Leg rows (New Trip Entry) ----------
+function addLegRow(from='', to='', lrNo=''){
+  legCounter++;
+  const id = 'leg_' + legCounter;
+  const wrap = document.getElementById('legsWrap');
+  const div = document.createElement('div');
+  div.className = 'leg-row';
+  div.id = id;
+  div.innerHTML = `
+    <div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label mb-1">From</label>
+        <input type="text" class="form-control form-control-sm leg-from" value="${from}" placeholder="Origin">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label mb-1">To</label>
+        <input type="text" class="form-control form-control-sm leg-to" value="${to}" placeholder="Destination">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label mb-1">LR No</label>
+        <input type="text" class="form-control form-control-sm leg-lr" value="${lrNo}" placeholder="LR Number">
+      </div>
+      <div class="col-md-1">
+        <button class="btn btn-sm btn-outline-danger w-100" onclick="document.getElementById('${id}').remove()"><i class="bi bi-trash"></i></button>
+      </div>
+    </div>`;
+  wrap.appendChild(div);
+}
+
+function resetSettlementForm(){
+  document.getElementById('f_driver').value = '';
+  document.getElementById('f_vehicle').value = '';
+  document.getElementById('f_date').value = '';
+  document.getElementById('f_remarks').value = '';
+  document.getElementById('f_fixedMileage').value = 4.5;
+  document.getElementById('f_tripPayment').value = 0;
+  document.getElementById('f_extraAmount').value = 0;
+  document.getElementById('f_advance').value = 0;
+  document.getElementById('f_totalPreview').value = 0;
+  document.getElementById('f_startKm').value = '';
+  document.getElementById('f_endKm').value = '';
+  document.getElementById('f_usedDiesel').value = '';
+  document.getElementById('f_dieselPrice').value = '';
+  document.getElementById('f_dieselDebitQty').value = '';
+  document.getElementById('f_dieselDebitPreview').value = 0;
+  document.getElementById('legsWrap').innerHTML = '';
+  addLegRow();
+  updateDieselPreview();
+}
+
+function updateTotalPreview(){
+  const t = parseFloat(document.getElementById('f_tripPayment').value)||0;
+  const e = parseFloat(document.getElementById('f_extraAmount').value)||0;
+  const a = parseFloat(document.getElementById('f_advance').value)||0;
+  document.getElementById('f_totalPreview').value = fmtMoney(t+e-a);
+}
+
+function updateDieselPreview(){
+  const startKm = parseFloat(document.getElementById('f_startKm').value)||0;
+  const endKm = parseFloat(document.getElementById('f_endKm').value)||0;
+  const used = parseFloat(document.getElementById('f_usedDiesel').value)||0;
+  const fixedM = parseFloat(document.getElementById('f_fixedMileage').value)||0;
+  const km = Math.max(0, endKm - startKm);
+  const mileage = used > 0 ? km/used : 0;
+  const udd = fixedM > 0 ? km/fixedM : 0;
+  const excess = udd - used;
+  document.getElementById('pv_km').textContent = fmtNum(km,0);
+  document.getElementById('pv_mileage').textContent = fmtNum(mileage,2) + ' km/L';
+  document.getElementById('pv_udd').textContent = fmtNum(udd,2) + ' L';
+  document.getElementById('pv_excess').textContent = fmtNum(excess,2) + ' L';
+}
+
+function updateDieselDebit(){
+  const price = parseFloat(document.getElementById('f_dieselPrice').value)||0;
+  const qty = parseFloat(document.getElementById('f_dieselDebitQty').value)||0;
+  document.getElementById('f_dieselDebitPreview').value = fmtMoney(price*qty);
+}
+
+async function saveSettlement(){
+  const driver = document.getElementById('f_driver').value.trim();
+  const vehicleNo = document.getElementById('f_vehicle').value.trim().toUpperCase();
+  const date = document.getElementById('f_date').value;
+  const remarks = document.getElementById('f_remarks').value.trim();
+  const fixedMileage = parseFloat(document.getElementById('f_fixedMileage').value)||4.5;
+  const tripPayment = parseFloat(document.getElementById('f_tripPayment').value)||0;
+  const extraAmount = parseFloat(document.getElementById('f_extraAmount').value)||0;
+  const advance = parseFloat(document.getElementById('f_advance').value)||0;
+  const startKm = parseFloat(document.getElementById('f_startKm').value)||0;
+  const endKm = parseFloat(document.getElementById('f_endKm').value)||0;
+  const usedDiesel = parseFloat(document.getElementById('f_usedDiesel').value)||0;
+  const dieselPrice = parseFloat(document.getElementById('f_dieselPrice').value)||0;
+  const dieselDebitQty = parseFloat(document.getElementById('f_dieselDebitQty').value)||0;
+
+  if(!vehicleNo || !date){ alert('Please enter Vehicle No and Date.'); return; }
+
+  const legs = Array.from(document.querySelectorAll('#legsWrap .leg-row')).map(row => ({
+    from: row.querySelector('.leg-from').value.trim(),
+    to: row.querySelector('.leg-to').value.trim(),
+    lrNo: row.querySelector('.leg-lr').value.trim()
+  })).filter(l => l.from || l.to);
+
+  if(legs.length === 0){ alert('Please add at least one trip leg.'); return; }
+
+  const km = Math.max(0, endKm - startKm);
+  const mileage = usedDiesel > 0 ? km/usedDiesel : 0;
+  const uddDiesel = fixedMileage > 0 ? km/fixedMileage : 0;
+  const excessDiesel = uddDiesel - usedDiesel;
+  const dieselDebit = dieselPrice * dieselDebitQty;
+
+  const rec = {
+    id: uid(), driver, vehicleNo, date, remarks, legs,
+    tripPayment, extraAmount, advance, total: tripPayment + extraAmount - advance,
+    startKm, endKm, km, usedDiesel, fixedMileage, mileage, uddDiesel, excessDiesel,
+    dieselPrice, dieselDebitQty, dieselDebit
   };
+  settlements.push(rec);
+  await persist('settlements', settlements);
 
-  useEffect(() => {
-    let gone = false;
-    (async () => {
-      try {
-        const { data, error } = await sb.from('entries').select('*').order('created_at',{ascending:false});
-        if (error) throw error;
-        if (gone) return;
-        setEntries((data||[]).map(fromRow));
-        setConn('connected');
-      } catch(e) {
-        if (gone) return;
-        setConn('error');
-        try { const r=localStorage.getItem('uddhava_v5'); if(r) setEntries(JSON.parse(r)); } catch(_){}
-      }
-    })();
+  // auto-register vehicle if new
+  if(!vehicles.find(v => v.vehicleNo === vehicleNo)){
+    vehicles.push({ vehicleNo, fixedMileage });
+    await persist('vehicles', vehicles);
+    refreshVehicleDropdowns(); renderVehicleTable();
+  }
 
-    const ch = sb.channel('entries-rt')
-      .on('postgres_changes',{event:'*',schema:'public',table:'entries'}, payload => {
-        setEntries(prev => {
-          let next = [...prev];
-          if (payload.eventType==='INSERT') {
-            const r=fromRow(payload.new);
-            if (!next.find(x=>x.id===r.id)) next=[r,...next];
-          } else if (payload.eventType==='UPDATE') {
-            const r=fromRow(payload.new);
-            const i=next.findIndex(x=>x.id===r.id);
-            if(i>=0) next[i]=r; else next=[r,...next];
-          } else if (payload.eventType==='DELETE') {
-            next=next.filter(x=>x.id!==payload.old.id);
-          }
-          try { localStorage.setItem('uddhava_v5',JSON.stringify(next)); } catch(_){}
-          return next;
-        });
-      }).subscribe();
-    chanRef.current = ch;
-    return () => { gone=true; if(chanRef.current) sb.removeChannel(chanRef.current); };
-  }, []);
-
-  const addEntry    = async (e)   => { const {error}=await sb.from('entries').insert(toRow(e)); if(error) throw error; showToast('Entry saved successfully'); };
-  const addEntries  = async (arr) => { const {error}=await sb.from('entries').insert(arr.map(toRow)); if(error) throw error; showToast(`${arr.length} entries uploaded`); };
-  const updateEntry = async (id,p) => { const {error}=await sb.from('entries').update(toRow(p)).eq('id',id); if(error) throw error; showToast('Changes saved'); };
-  const deleteEntry = async (id)  => { const {error}=await sb.from('entries').delete().eq('id',id); if(error) throw error; showToast('Entry deleted','warn'); };
-
-  return (
-    <DataCtx.Provider value={{entries,connState,addEntry,addEntries,updateEntry,deleteEntry,toast}}>
-      {children}
-    </DataCtx.Provider>
-  );
-}
-const useData = () => useContext(DataCtx);
-
-/* ═══════════════════════════════════════════════════════
-   SMALL SHARED COMPONENTS
-═══════════════════════════════════════════════════════ */
-
-/* Status badge for collection */
-function CollStatusBadge({ status, size='sm' }) {
-  const s = COLL_STATUSES.find(x=>x.key===status) || COLL_STATUSES[0];
-  const sz = size==='xs' ? 'text-[10.5px] px-2 py-0.5' : 'text-xs px-2.5 py-1';
-  return <span className={`badge ${s.cls} ${sz}`}>{s.label}</span>;
+  resetSettlementForm();
+  renderDashboard(); renderSettlementsList();
+  alert('Trip entry saved.');
+  new bootstrap.Tab(document.querySelector('[data-bs-target="#tab-list"]')).show();
 }
 
-/* Status badge for trip */
-function TripStatusBadge({ status }) {
-  const s = TRIP_STATUSES.find(x=>x.key===status) || TRIP_STATUSES[0];
-  return (
-    <span className={`badge ${s.cls}`}>
-      {status==='transit' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 pulse inline-block"></span>}
-      {status==='delivered' && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>}
-      {s.label}
-    </span>
-  );
+async function deleteSettlement(id){
+  if(!confirm('Delete this settlement?')) return;
+  settlements = settlements.filter(s => s.id !== id);
+  await persist('settlements', settlements);
+  renderDashboard(); renderSettlementsList();
 }
 
-/* Company badge */
-function CompanyBadge({ keyCompany, subCompany, zone, size='sm' }) {
-  if (!keyCompany) return null;
-  const p = cpal(keyCompany);
-  const zs = ZONE_STYLES[zone];
-  const textSz = size==='xs' ? 'text-[10.5px]' : 'text-xs';
-  return (
-    <div className={`inline-flex items-center gap-1 flex-wrap leading-none ${textSz}`}>
-      <span className="badge" style={{background:p.bg,color:p.text,border:`1px solid ${p.border}`}}>
-        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{background:p.dot}}></span>
-        {keyCompany}
-      </span>
-      {subCompany && <span style={{color:'var(--hint)'}}>›</span>}
-      {subCompany && <span className="font-semibold" style={{color:'var(--muted)'}}>{subCompany}</span>}
-      {zone && zs && <span className="badge" style={{background:zs.bg,color:zs.text,border:'none'}}>{zone}</span>}
-    </div>
-  );
+// ---------- Vehicles ----------
+async function saveVehicle(){
+  const vehicleNo = document.getElementById('v_vehicleNo').value.trim().toUpperCase();
+  const fixedMileage = parseFloat(document.getElementById('v_fixedMileage').value)||4.5;
+  if(!vehicleNo){ alert('Please enter a vehicle number.'); return; }
+  const existing = vehicles.find(v => v.vehicleNo === vehicleNo);
+  if(existing){ existing.fixedMileage = fixedMileage; }
+  else{ vehicles.push({ vehicleNo, fixedMileage }); }
+  await persist('vehicles', vehicles);
+  document.getElementById('v_vehicleNo').value = '';
+  document.getElementById('v_fixedMileage').value = 4.5;
+  refreshVehicleDropdowns(); renderVehicleTable();
+}
+async function deleteVehicle(vehicleNo){
+  if(!confirm('Delete vehicle ' + vehicleNo + '?')) return;
+  vehicles = vehicles.filter(v => v.vehicleNo !== vehicleNo);
+  await persist('vehicles', vehicles);
+  refreshVehicleDropdowns(); renderVehicleTable();
+}
+function renderVehicleTable(){
+  const tbody = document.getElementById('vehicleTableBody');
+  if(vehicles.length === 0){
+    tbody.innerHTML = `<tr><td colspan="3" class="empty-hint">No vehicles added yet.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = vehicles.map(v => `
+    <tr>
+      <td><strong>${v.vehicleNo}</strong></td>
+      <td>${fmtNum(v.fixedMileage,2)}</td>
+      <td><button class="btn btn-sm btn-outline-danger" onclick="deleteVehicle('${v.vehicleNo}')"><i class="bi bi-trash"></i></button></td>
+    </tr>`).join('');
 }
 
-/* Zone pill */
-function ZonePill({ zone }) {
-  const s = ZONE_STYLES[zone];
-  if (!s) return <span className="badge">{zone}</span>;
-  return <span className="badge" style={{background:s.bg,color:s.text,border:'none'}}>{zone}</span>;
+// ---------- Settlements list (with vehicle + date-wise filter) ----------
+function clearListFilters(){
+  document.getElementById('listVehicleFilter').value = '';
+  document.getElementById('listFromDate').value = '';
+  document.getElementById('listToDate').value = '';
+  renderSettlementsList();
+}
+function filteredSettlements(vehicleElId, fromElId, toElId){
+  const vFilter = document.getElementById(vehicleElId) ? document.getElementById(vehicleElId).value : '';
+  const fromDate = fromElId && document.getElementById(fromElId) ? document.getElementById(fromElId).value : '';
+  const toDate = toElId && document.getElementById(toElId) ? document.getElementById(toElId).value : '';
+  let list = settlements.slice();
+  if(vFilter) list = list.filter(s => s.vehicleNo === vFilter);
+  if(fromDate) list = list.filter(s => (s.date||'') >= fromDate);
+  if(toDate) list = list.filter(s => (s.date||'') <= toDate);
+  return list;
 }
 
-/* Field wrapper */
-function Field({ label, error, required, hint, children }) {
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-1.5">
-        <label className="text-xs font-semibold" style={{color:'var(--ink-2)'}}>
-          {label}{required && <span style={{color:'#ef4444'}} className="ml-0.5">*</span>}
-        </label>
-        {hint && <span className="text-[11px]" style={{color:'var(--hint)'}}>{hint}</span>}
-      </div>
-      {children}
-      {error && <p className="text-[11.5px] mt-1" style={{color:'#dc2626'}}>{error}</p>}
-    </div>
-  );
-}
+function renderSettlementsList(){
+  const wrap = document.getElementById('settlementsListWrap');
+  let list = filteredSettlements('listVehicleFilter','listFromDate','listToDate')
+    .sort((a,b)=> (b.date||'').localeCompare(a.date||''));
 
-/* Searchable dropdown */
-function SearchableSelect({ options, value, onChange, placeholder, renderOption }) {
-  const [open, setOpen] = useState(false);
-  const [q, setQ] = useState('');
-  const ref = useRef(null);
-  const inputRef = useRef(null);
+  if(list.length === 0){
+    wrap.innerHTML = `<div class="empty-hint"><i class="bi bi-inbox" style="font-size:2rem"></i><div>No settlements match this filter yet.</div></div>`;
+    return;
+  }
 
-  useEffect(() => {
-    const h = e => { if(ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, []);
-
-  const filtered = options.filter(o => String(o).toLowerCase().includes(q.toLowerCase()));
-
-  return (
-    <div ref={ref} className="relative">
-      <button type="button"
-        onClick={()=>{ setOpen(v=>!v); setTimeout(()=>inputRef.current?.focus(),50); }}
-        style={{
-          display:'flex',alignItems:'center',justifyContent:'space-between',
-          width:'100%',padding:'9px 12px',fontSize:'14px',
-          border:'1.5px solid var(--border)',borderRadius:'var(--radius)',
-          background:'var(--surface)',color: value ? 'var(--ink)' : 'var(--hint)',
-          cursor:'pointer',transition:'border-color .15s',textAlign:'left'
-        }}
-        onFocus={e=>e.currentTarget.style.borderColor='var(--amber-500)'}
-        onBlur={e=>{ if(!ref.current?.contains(document.activeElement)) e.currentTarget.style.borderColor='var(--border)'; }}
-      >
-        <span className={value ? 'font-medium' : ''}>{value || placeholder}</span>
-        <svg className="w-4 h-4 shrink-0 ml-2" style={{color:'var(--hint)',transition:'transform .15s',transform:open?'rotate(180deg)':'none'}} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
-      </button>
-      {open && (
-        <div className="anim-slide-down" style={{position:'absolute',top:'calc(100% + 4px)',left:0,right:0,background:'var(--surface)',border:'1.5px solid var(--amber-300)',borderRadius:'var(--radius)',boxShadow:'var(--shadow-lg)',zIndex:60,overflow:'hidden'}}>
-          <div style={{padding:'8px',borderBottom:'1px solid var(--border)'}}>
-            <input ref={inputRef} value={q} onChange={e=>setQ(e.target.value)} placeholder="Search…"
-              style={{padding:'6px 10px',fontSize:'13px',border:'1px solid var(--border)',borderRadius:'var(--radius-sm)',background:'var(--surface-2)',width:'100%'}}
-            />
-          </div>
-          <div style={{maxHeight:'200px',overflowY:'auto'}}>
-            {filtered.map(opt => (
-              <button key={opt} type="button"
-                onClick={()=>{ onChange(opt); setOpen(false); setQ(''); }}
-                style={{
-                  display:'block',width:'100%',textAlign:'left',padding:'8px 12px',
-                  fontSize:'13.5px',cursor:'pointer',background: value===opt ? 'var(--amber-50)' : 'transparent',
-                  fontWeight: value===opt ? 600 : 400,transition:'background .1s',color:'var(--ink)'
-                }}
-                onMouseEnter={e=>e.currentTarget.style.background='var(--amber-50)'}
-                onMouseLeave={e=>e.currentTarget.style.background= value===opt ? 'var(--amber-50)' : 'transparent'}
-              >
-                {renderOption ? renderOption(opt) : opt}
-              </button>
-            ))}
-            {filtered.length===0 && <div style={{padding:'12px',textAlign:'center',color:'var(--hint)',fontSize:'13px'}}>No matches</div>}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
-   CASCADING COMPANY SELECTOR
-═══════════════════════════════════════════════════════ */
-function CompanySelector({ keyCompany, subCompany, zone, onChange, errors={} }) {
-  const subs = getSubs(keyCompany);
-
-  const pickKey = val => onChange({ keyCompany: val, subCompany:'', zone:'' });
-  const pickSub = val => onChange({ keyCompany, subCompany: val, zone:'' });
-  const pickZone= val => onChange({ keyCompany, subCompany, zone: val });
-
-  return (
-    <div style={{display:'flex',flexDirection:'column',gap:'14px'}}>
-      {/* Key company grid */}
-      <div>
-        <label className="text-xs font-semibold mb-2 block" style={{color:'var(--ink-2)'}}>
-          Key Company <span style={{color:'#ef4444'}}>*</span>
-          {errors.keyCompany && <span style={{color:'#dc2626',fontWeight:400,marginLeft:8}}>— {errors.keyCompany}</span>}
-        </label>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'8px'}}>
-          {KEY_COMPANY_NAMES.map(name => {
-            const p = cpal(name);
-            const active = keyCompany === name;
-            return (
-              <button key={name} type="button" onClick={()=>pickKey(name)}
-                className="btn"
-                style={{
-                  justifyContent:'flex-start',gap:'8px',padding:'9px 12px',
-                  background: active ? p.bg : 'var(--surface)',
-                  border: `1.5px solid ${active ? p.border : 'var(--border)'}`,
-                  color: active ? p.text : 'var(--muted)',
-                  fontWeight: active ? 700 : 500,
-                  boxShadow: active ? `0 0 0 2px ${p.border}` : 'none',
-                  fontSize:'13px'
-                }}>
-                <span className="w-2 h-2 rounded-full shrink-0" style={{background: active ? p.dot : 'var(--border-2)'}}></span>
-                {name}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Sub company */}
-      {keyCompany && (
-        <div className="anim-fade-up" style={{paddingLeft:'12px',borderLeft:'2px solid var(--amber-200)'}}>
-          <label className="text-xs font-semibold mb-2 block" style={{color:'var(--ink-2)'}}>
-            Sub Company <span style={{color:'#ef4444'}}>*</span>
-            {errors.subCompany && <span style={{color:'#dc2626',fontWeight:400,marginLeft:8}}>— {errors.subCompany}</span>}
-          </label>
-          <input list={`sub-list-${keyCompany}`} value={subCompany}
-            onChange={e=>pickSub(e.target.value)}
-            placeholder={`Type or choose a ${keyCompany} sub-company…`}
-            autoComplete="off"
-          />
-          <datalist id={`sub-list-${keyCompany}`}>
-            {subs.map(s=><option key={s} value={s}/>)}
-          </datalist>
-        </div>
-      )}
-
-      {/* Zone */}
-      {keyCompany && subCompany && (
-        <div className="anim-fade-up" style={{paddingLeft:'12px',borderLeft:'2px solid var(--amber-200)'}}>
-          <label className="text-xs font-semibold mb-2 block" style={{color:'var(--ink-2)'}}>
-            Zone <span style={{color:'#ef4444'}}>*</span>
-            {errors.zone && <span style={{color:'#dc2626',fontWeight:400,marginLeft:8}}>— {errors.zone}</span>}
-          </label>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'6px'}}>
-            {ZONES.map(z => {
-              const zs = ZONE_STYLES[z];
-              const active = zone === z;
-              return (
-                <button key={z} type="button" onClick={()=>pickZone(z)}
-                  className="btn"
-                  style={{
-                    justifyContent:'center',fontSize:'12.5px',padding:'7px 8px',
-                    background: active ? zs.bg : 'var(--surface)',
-                    border: `1.5px solid ${active ? zs.text+'40' : 'var(--border)'}`,
-                    color: active ? zs.text : 'var(--muted)',
-                    fontWeight: active ? 700 : 500,
-                    transform: active ? 'scale(1.04)' : 'none',
-                  }}>
-                  {z}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Preview */}
-      {keyCompany && subCompany && zone && (
-        <div className="anim-fade" style={{background:'var(--surface-2)',borderRadius:'var(--radius)',padding:'10px 14px',display:'flex',alignItems:'center',gap:'8px',border:'1px solid var(--border)'}}>
-          <span className="text-xs" style={{color:'var(--hint)',fontWeight:600}}>Preview</span>
-          <CompanyBadge keyCompany={keyCompany} subCompany={subCompany} zone={zone}/>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
-   COLLECTION STATUS SELECTOR
-═══════════════════════════════════════════════════════ */
-function CollStatusSelector({ value, onChange }) {
-  const colors = {
-    created:   {bg:'#eff6ff',border:'#bfdbfe',text:'#1d4ed8',dot:'#3b82f6'},
-    hold:      {bg:'#fffbeb',border:'#fde68a',text:'#b45309',dot:'#f59e0b'},
-    cancel:    {bg:'#fef2f2',border:'#fecaca',text:'#b91c1c',dot:'#ef4444'},
-    completed: {bg:'#f0fdf4',border:'#bbf7d0',text:'#15803d',dot:'#22c55e'},
-  };
-  return (
-    <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'8px'}}>
-      {COLL_STATUSES.map(s => {
-        const c = colors[s.key];
-        const active = value === s.key;
-        return (
-          <button key={s.key} type="button" onClick={()=>onChange(s.key)}
-            style={{
-              display:'flex',alignItems:'center',gap:'8px',padding:'10px 12px',
-              borderRadius:'var(--radius)',cursor:'pointer',textAlign:'left',
-              background: active ? c.bg : 'var(--surface)',
-              border: `1.5px solid ${active ? c.border : 'var(--border)'}`,
-              boxShadow: active ? `0 0 0 2px ${c.border}` : 'none',
-              transition:'all .15s'
-            }}>
-            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{background: active ? c.dot : 'var(--border-2)'}}></span>
-            <div>
-              <div style={{fontSize:'13px',fontWeight: active ? 700 : 500,color: active ? c.text : 'var(--ink-2)'}}>{s.label}</div>
-            </div>
-            {active && (
-              <svg className="w-4 h-4 ml-auto shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" style={{color:c.dot}}>
-                <path d="M5 13l4 4L19 7"/>
-              </svg>
-            )}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
-   APP SHELL
-═══════════════════════════════════════════════════════ */
-function App() { return <DataProvider><Shell/></DataProvider>; }
-
-function Shell() {
-  const [page, setPage]           = useState('dashboard');
-  const [formEntry, setFormEntry] = useState(null);  // null=closed, 'new'=new, entry obj=edit
-  const [now, setNow]             = useState(new Date());
-  const { connState, toast }      = useData();
-
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  const TABS = [
-    { key:'dashboard', label:'Dashboard', icon:'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-    { key:'entries',   label:'Entries',   icon:'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-    { key:'reports',   label:'Reports',   icon:'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-  ];
-
-  const connBadge = {
-    connecting: {dot:'#f59e0b', label:'Connecting', bg:'#fffbeb', tc:'#b45309'},
-    connected:  {dot:'#22c55e', label:'Live',       bg:'#f0fdf4', tc:'#15803d'},
-    error:      {dot:'#ef4444', label:'Offline',    bg:'#fef2f2', tc:'#b91c1c'},
-  }[connState] || {dot:'#9ca3af', label:'…', bg:'#f9fafb', tc:'#6b7280'};
-
-  return (
-    <div style={{minHeight:'100vh',background:'var(--bg)'}}>
-      {/* Header */}
-      <header className="app-header">
-        <div style={{maxWidth:'1200px',margin:'0 auto',padding:'0 20px',height:'60px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'12px'}}>
-          {/* Logo */}
-          <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-            <div style={{width:'38px',height:'38px',background:'linear-gradient(135deg,#f59e0b,#d97706)',borderRadius:'10px',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 8px rgba(245,158,11,.35)',flexShrink:0}}>
-              <svg className="w-5 h-5" fill="white" viewBox="0 0 24 24"><path d="M3 7h11v8H3zM14 10h4l3 3v2h-7zM5 17a2 2 0 11.001 4A2 2 0 015 17m12 0a2 2 0 11.001 4A2 2 0 0117 17"/></svg>
-            </div>
-            <div>
-              <div style={{fontWeight:700,fontSize:'15px',letterSpacing:'-.02em',lineHeight:1.2}}>Uddhava Logistics</div>
-              <div className="mono desktop-only" style={{fontSize:'10px',color:'var(--hint)',letterSpacing:'.08em'}}>VEHICLE ALLOTMENT</div>
-            </div>
-          </div>
-
-          {/* Clock + conn + new btn */}
-          <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
-            <div className="desktop-only" style={{textAlign:'right'}}>
-              <div style={{fontSize:'11px',color:'var(--hint)'}}>{now.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})}</div>
-              <div className="mono" style={{fontSize:'13px',fontWeight:600}}>{now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</div>
-            </div>
-            <div className="badge" style={{background:connBadge.bg,color:connBadge.tc,border:`1px solid ${connBadge.dot}30`}}>
-              <span className="w-1.5 h-1.5 rounded-full" style={{background:connBadge.dot,flexShrink:0}}></span>
-              <span className="desktop-only">{connBadge.label}</span>
-            </div>
-            <button onClick={()=>setFormEntry('new')} className="btn btn-primary desktop-only">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
-              New Entry
-            </button>
-          </div>
-        </div>
-
-        {/* Tab bar */}
-        <div style={{maxWidth:'1200px',margin:'0 auto',padding:'0 20px',display:'flex',gap:'2px',borderTop:'1px solid var(--border)'}}>
-          {TABS.map(t => (
-            <button key={t.key} onClick={()=>setPage(t.key)} className={`tab ${page===t.key?'active':''}`}>
-              <svg className="w-4 h-4 inline-block mr-1.5 -mt-0.5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d={t.icon}/></svg>
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </header>
-
-      {/* Page content */}
-      <main style={{maxWidth:'1200px',margin:'0 auto',padding:'24px 20px'}}>
-        {page==='dashboard' && <Dashboard onNew={()=>setFormEntry('new')} onEdit={e=>setFormEntry(e)} goEntries={()=>setPage('entries')}/>}
-        {page==='entries'   && <EntriesPage onNew={()=>setFormEntry('new')} onEdit={e=>setFormEntry(e)}/>}
-        {page==='reports'   && <ReportsPage/>}
-      </main>
-
-      {/* Mobile FAB */}
-      <button onClick={()=>setFormEntry('new')} className="mobile-fab"
-        style={{position:'fixed',bottom:'24px',right:'24px',width:'54px',height:'54px',borderRadius:'50%',background:'var(--amber-500)',color:'white',border:'none',boxShadow:'0 4px 20px rgba(245,158,11,.45)',alignItems:'center',justifyContent:'center',cursor:'pointer',zIndex:30,fontSize:'24px',fontWeight:300}}>
-        +
-      </button>
-
-      {/* Entry form modal */}
-      {formEntry !== null && (
-        <EntryModal entry={formEntry==='new'?null:formEntry} onClose={()=>setFormEntry(null)}/>
-      )}
-
-      {/* Toast */}
-      {toast && (
-        <div style={{
-          position:'fixed',bottom:'28px',left:'50%',transform:'translateX(-50%)',
-          zIndex:9999,padding:'12px 20px',borderRadius:'var(--radius-lg)',
-          boxShadow:'var(--shadow-lg)',fontWeight:600,fontSize:'13.5px',
-          display:'flex',alignItems:'center',gap:'8px',whiteSpace:'nowrap',
-          background: toast.kind==='warn' ? '#1a1a16' : '#1a1a16',
-          color: toast.kind==='warn' ? '#fcd34d' : '#a3e635',
-          animation:'toastIn .3s cubic-bezier(.16,1,.3,1)'
-        }}>
-          {toast.kind==='warn' ? '⚠' : '✓'} {toast.msg}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
-   DASHBOARD
-═══════════════════════════════════════════════════════ */
-function Dashboard({ onNew, onEdit, goEntries }) {
-  const { entries } = useData();
-
-  const latestDate = useMemo(()=>{
-    const d=[...new Set(entries.map(e=>e.date))].sort().reverse();
-    return d[0]||todayStr();
-  },[entries]);
-
-  const day       = entries.filter(e=>e.date===latestDate);
-  const transit   = day.filter(e=>e.tripStatus==='transit');
-  const delivered = day.filter(e=>e.tripStatus==='delivered');
-
-  const collByStatus = useMemo(()=>COLL_STATUSES.map(s=>({
-    ...s, count: day.filter(e=>e.collStatus===s.key).length
-  })),[day]);
-
-  const companyStats = useMemo(()=>KEY_COMPANY_NAMES.map(k=>({
-    key:k,
-    total:day.filter(e=>e.keyCompany===k).length,
-    delivered:day.filter(e=>e.keyCompany===k&&e.tripStatus==='delivered').length,
-    transit:day.filter(e=>e.keyCompany===k&&e.tripStatus==='transit').length,
-    zones:ZONES.map(z=>({z,n:day.filter(e=>e.keyCompany===k&&e.zone===z).length})).filter(x=>x.n>0),
-  })),[day]);
-
-  const shiftStats = SHIFTS.map(s=>({
-    s, total:day.filter(e=>e.shift===s).length,
-    done:day.filter(e=>e.shift===s&&e.tripStatus==='delivered').length
-  }));
-
-  return (
-    <div style={{display:'flex',flexDirection:'column',gap:'24px'}}>
-      {/* Hero */}
-      <div style={{
-        background:'linear-gradient(135deg,#1e293b 0%,#0f172a 100%)',
-        borderRadius:'var(--radius-xl)',padding:'28px 32px',position:'relative',overflow:'hidden',
-        boxShadow:'0 8px 32px rgba(0,0,0,.18)'
-      }}>
-        <div style={{position:'absolute',inset:0,backgroundImage:'radial-gradient(circle at 80% 20%,rgba(251,191,36,.12) 0,transparent 50%)',pointerEvents:'none'}}></div>
-        <div style={{position:'absolute',inset:0,backgroundImage:'radial-gradient(rgba(255,255,255,.03) 1px,transparent 1px)',backgroundSize:'24px 24px',pointerEvents:'none'}}></div>
-        <div style={{position:'relative',display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:'16px',marginBottom:'24px'}}>
-          <div>
-            <div style={{display:'inline-flex',alignItems:'center',gap:'6px',background:'rgba(251,191,36,.15)',border:'1px solid rgba(251,191,36,.25)',borderRadius:'99px',padding:'4px 12px',marginBottom:'10px'}}>
-              <span className="w-1.5 h-1.5 rounded-full pulse" style={{background:'#fbbf24',display:'inline-block'}}></span>
-              <span className="mono" style={{fontSize:'10px',color:'#fbbf24',letterSpacing:'.1em',fontWeight:600}}>LIVE OPERATIONS</span>
-            </div>
-            <div style={{fontSize:'26px',fontWeight:700,color:'white',letterSpacing:'-.03em',lineHeight:1.2}}>
-              {fmtDate(latestDate)}
-            </div>
-            <div style={{fontSize:'13px',color:'#94a3b8',marginTop:'4px'}}>
-              <span style={{color:'white',fontWeight:600}}>{day.length}</span> entries
-              {transit.length>0 && <span style={{color:'#fcd34d',fontWeight:600}}> · {transit.length} in transit</span>}
-            </div>
-          </div>
-          <button onClick={onNew} className="btn desktop-only"
-            style={{background:'#fbbf24',color:'#1a1a16',border:'none',fontWeight:700,padding:'10px 20px',boxShadow:'0 4px 14px rgba(251,191,36,.4)'}}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
-            New Entry
-          </button>
-        </div>
-
-        {/* KPI row */}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'12px'}}>
-          {[
-            {label:'Total Today',   val:day.length,         sub:'All entries',   color:'#c084fc'},
-            {label:'Collections',   val:day.filter(e=>e.type==='collection').length, sub:'Inbound', color:'#60a5fa'},
-            {label:'In Transit',    val:transit.length,     sub:'On route',      color:'#fbbf24', pulse:true},
-            {label:'Delivered',     val:delivered.length,   sub:'Completed',     color:'#4ade80'},
-          ].map(k=>(
-            <div key={k.label} style={{background:'rgba(255,255,255,.06)',borderRadius:'var(--radius-lg)',padding:'16px',border:'1px solid rgba(255,255,255,.08)',backdropFilter:'blur(4px)'}}>
-              <div className="mono" style={{fontSize:'10px',color:'rgba(255,255,255,.45)',letterSpacing:'.08em',marginBottom:'8px'}}>{k.label.toUpperCase()}</div>
-              <div style={{fontSize:'36px',fontWeight:700,color: k.val>0 ? k.color : 'rgba(255,255,255,.3)',lineHeight:1,letterSpacing:'-.04em'}}>
-                {k.val}
-                {k.pulse && k.val>0 && <span className="w-2 h-2 rounded-full pulse inline-block ml-2 mb-1" style={{background:k.color}}></span>}
-              </div>
-              <div style={{fontSize:'11px',color:'rgba(255,255,255,.3)',marginTop:'4px'}}>{k.sub}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Collection status overview */}
-      <div>
-        <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:'12px'}}>
-          <div className="section-title">Collection Status</div>
-          <div className="section-sub">{fmtDate(latestDate)}</div>
-        </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'12px'}}>
-          {collByStatus.map(s=>(
-            <div key={s.key} className="kpi-card">
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'12px'}}>
-                <CollStatusBadge status={s.key}/>
-              </div>
-              <div style={{fontSize:'36px',fontWeight:700,letterSpacing:'-.04em',lineHeight:1}}>{s.count}</div>
-              <div style={{fontSize:'12px',color:'var(--muted)',marginTop:'4px'}}>entries</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* In Transit */}
-      <div>
-        <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:'12px'}}>
-          <div>
-            <div className="section-title">In Transit</div>
-            <div className="section-sub">{transit.length} vehicle{transit.length!==1?'s':''} currently out</div>
-          </div>
-          <button onClick={goEntries} className="btn btn-ghost btn-sm">View all →</button>
-        </div>
-        {transit.length===0
-          ? <EmptyState text="No vehicles in transit. All trips completed."/>
-          : <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:'12px'}}>
-              {transit.map(e=><TransitCard key={e.id} entry={e} onEdit={()=>onEdit(e)}/>)}
-            </div>
-        }
-      </div>
-
-      {/* Two column: shifts + recent */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr 2fr',gap:'16px'}}>
-        {/* Shift stats */}
+  wrap.innerHTML = list.map(s => `
+    <div class="card settlement-card mb-3 p-3">
+      <div class="d-flex flex-wrap justify-content-between align-items-start">
         <div>
-          <div className="section-title" style={{marginBottom:'12px'}}>By Shift</div>
-          <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
-            {shiftStats.map(s=>{
-              const pct = s.total ? (s.done/s.total)*100 : 0;
-              return (
-                <div key={s.s} className="card" style={{padding:'16px'}}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'10px'}}>
-                    <div style={{fontWeight:700,fontSize:'14px',display:'flex',alignItems:'center',gap:'6px'}}>
-                      {s.s==='Day'?'☀️':'🌙'} {s.s} Shift
-                    </div>
-                    <div className="mono" style={{fontSize:'12px'}}>
-                      <span style={{color:'var(--green-600)',fontWeight:700}}>{s.done}</span>
-                      <span style={{color:'var(--hint)'}}> / {s.total}</span>
-                    </div>
-                  </div>
-                  <div style={{height:'5px',background:'var(--surface-2)',borderRadius:'99px',overflow:'hidden'}}>
-                    <div style={{height:'100%',background:'linear-gradient(90deg,#f59e0b,#d97706)',borderRadius:'99px',width:`${pct}%`,transition:'width .4s'}}></div>
-                  </div>
-                  <div style={{fontSize:'11px',color:'var(--hint)',marginTop:'6px'}}>{s.total?`${Math.round(pct)}% complete`:'No entries'}</div>
-                </div>
-              );
-            })}
-          </div>
+          <div class="fw-bold">${s.vehicleNo} &nbsp;<span class="text-muted fw-normal">| ${s.date||''}</span></div>
+          <div class="text-muted small">Driver: ${s.driver||'—'}</div>
+          ${s.remarks ? `<div class="text-muted small fst-italic">"${s.remarks}"</div>` : ''}
         </div>
-
-        {/* Recent activity */}
-        <div>
-          <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:'12px'}}>
-            <div className="section-title">Recent Activity</div>
-          </div>
-          <div className="card" style={{overflow:'hidden'}}>
-            {day.slice(0,8).map((e,i)=>(
-              <button key={e.id} onClick={()=>onEdit(e)}
-                style={{width:'100%',textAlign:'left',padding:'12px 16px',display:'flex',alignItems:'center',gap:'12px',borderBottom: i<Math.min(day.length,8)-1 ? '1px solid var(--border)' : 'none',background:'transparent',cursor:'pointer',transition:'background .1s'}}
-                onMouseEnter={ev=>ev.currentTarget.style.background='var(--amber-50)'}
-                onMouseLeave={ev=>ev.currentTarget.style.background='transparent'}
-              >
-                <div style={{width:'36px',height:'36px',borderRadius:'var(--radius)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,background: e.tripStatus==='delivered' ? 'var(--green-100)' : 'var(--amber-100)'}}>
-                  {e.tripStatus==='delivered'
-                    ? <svg className="w-4 h-4" style={{color:'var(--green-700)'}} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
-                    : <svg className="w-4 h-4" style={{color:'var(--amber-700)'}} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>}
-                </div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap',fontSize:'13.5px'}}>
-                    <span style={{fontWeight:700}}>{e.vehicleNo}</span>
-                    <span className="badge mono" style={{background:'var(--amber-100)',color:'var(--amber-800)',fontSize:'11px',padding:'1px 6px'}}>{e.branch}</span>
-                    <CollStatusBadge status={e.collStatus} size="xs"/>
-                    {e.keyCompany && <CompanyBadge keyCompany={e.keyCompany} subCompany="" zone="" size="xs"/>}
-                  </div>
-                  <div style={{fontSize:'12px',color:'var(--muted)',marginTop:'2px'}}>{e.fromLoc} → {e.toLoc} · {e.shift} · {e.driverName}</div>
-                </div>
-                <div className="desktop-only" style={{textAlign:'right',flexShrink:0}}>
-                  <div className="mono" style={{fontSize:'12px',color:'var(--ink-2)'}}>{fmtTime(e.outTime)} → {fmtTime(e.inTime)}</div>
-                  <div className="mono" style={{fontSize:'11px',color:'var(--hint)'}}>{fmtDur(e.outTime,e.inTime)}</div>
-                </div>
-              </button>
-            ))}
-            {day.length===0 && <div style={{padding:'32px',textAlign:'center',color:'var(--hint)',fontSize:'13px'}}>No entries today.</div>}
-          </div>
+        <div class="text-end">
+          <div class="fw-bold text-primary">${fmtMoney(s.total)}</div>
+          <button class="btn btn-sm btn-outline-secondary mt-1" onclick="printOne('${s.id}')"><i class="bi bi-printer"></i></button>
+          <button class="btn btn-sm btn-outline-danger mt-1" onclick="deleteSettlement('${s.id}')"><i class="bi bi-trash"></i></button>
         </div>
       </div>
-
-      {/* Key Company Summary */}
-      <div>
-        <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:'12px'}}>
-          <div className="section-title">Key Company Summary</div>
-          <div className="section-sub">All companies · {fmtDate(latestDate)}</div>
-        </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:'12px'}}>
-          {companyStats.map(cs=>{
-            const p = cpal(cs.key);
-            const pct = cs.total ? (cs.delivered/cs.total)*100 : 0;
-            return (
-              <div key={cs.key} className="card card-hover"
-                style={{border:`1.5px solid ${p.border}`,overflow:'hidden'}}>
-                <div style={{height:'3px',background:p.dot}}></div>
-                <div style={{padding:'16px'}}>
-                  <div style={{display:'inline-flex',alignItems:'center',gap:'5px',padding:'3px 9px',borderRadius:'99px',background:p.bg,color:p.text,fontSize:'11.5px',fontWeight:700,marginBottom:'12px'}}>
-                    <span className="w-1.5 h-1.5 rounded-full" style={{background:p.dot,flexShrink:0}}></span>
-                    {cs.key}
-                  </div>
-                  <div style={{fontSize:'38px',fontWeight:700,letterSpacing:'-.05em',lineHeight:1}}>{cs.total}</div>
-                  <div style={{fontSize:'11px',color:'var(--muted)',marginTop:'2px'}}>total trips</div>
-                  <div style={{display:'flex',justifyContent:'space-between',fontSize:'11.5px',marginTop:'10px'}}>
-                    <span style={{color:'var(--green-700)',fontWeight:600}}>{cs.delivered} done</span>
-                    {cs.transit>0 && <span style={{color:'var(--amber-700)',fontWeight:600}}>{cs.transit} out</span>}
-                  </div>
-                  <div style={{height:'4px',background:'var(--surface-2)',borderRadius:'99px',marginTop:'8px',overflow:'hidden'}}>
-                    <div style={{height:'100%',background:p.dot,borderRadius:'99px',width:`${pct}%`,transition:'width .4s'}}></div>
-                  </div>
-                  {cs.zones.length>0 && (
-                    <div style={{display:'flex',flexWrap:'wrap',gap:'4px',marginTop:'10px'}}>
-                      {cs.zones.map(({z,n})=>{
-                        const zs=ZONE_STYLES[z];
-                        return <span key={z} className="badge" style={{background:zs?.bg,color:zs?.text,fontSize:'10px',padding:'1px 6px'}}>{z.replace('Zone ','Z')}{n>1?` ×${n}`:''}</span>;
-                      })}
-                    </div>
-                  )}
-                  {cs.total===0 && <div style={{fontSize:'11px',color:'var(--hint)',marginTop:'8px'}}>No trips today</div>}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      <div class="table-responsive mt-2">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>From</th><th>To</th><th>LR No</th></tr></thead>
+          <tbody>
+            ${s.legs.map(l => `<tr><td>${l.from}</td><td>${l.to}</td><td>${l.lrNo||'—'}</td></tr>`).join('')}
+          </tbody>
+        </table>
       </div>
-    </div>
-  );
+      <div class="d-flex flex-wrap gap-3 small text-muted mt-1">
+        <div>Trip Payment: <strong>${fmtMoney(s.tripPayment)}</strong></div>
+        <div>Extra: <strong>${fmtMoney(s.extraAmount)}</strong></div>
+        <div>Advance: <strong>${fmtMoney(s.advance)}</strong></div>
+        <div>Km: <strong>${fmtNum(s.km,0)}</strong></div>
+        <div>Diesel Used: <strong>${fmtNum(s.usedDiesel,2)} L</strong></div>
+        <div>Mileage: <strong>${fmtNum(s.mileage,2)} km/L</strong></div>
+        <div>Excess/(Deficit): <strong class="${s.excessDiesel>=0?'text-success':'text-danger'}">${fmtNum(s.excessDiesel,2)} L</strong></div>
+        ${s.dieselDebit ? `<div>Diesel Debit: <strong>${fmtMoney(s.dieselDebit)}</strong></div>` : ''}
+      </div>
+    </div>`).join('');
 }
 
-function EmptyState({ text }) {
-  return (
-    <div style={{border:'2px dashed var(--border)',borderRadius:'var(--radius-lg)',padding:'40px',textAlign:'center',color:'var(--hint)',fontSize:'13px'}}>
-      {text}
-    </div>
-  );
-}
-
-function TransitCard({ entry, onEdit }) {
-  const [, tick] = useState(0);
-  useEffect(()=>{ const i=setInterval(()=>tick(t=>t+1),30000); return ()=>clearInterval(i); },[]);
-  const elapsed = entry.outTime ? fmtDur(entry.outTime, new Date().toISOString()) : '—';
-  return (
-    <div onClick={onEdit} className="card card-hover" style={{padding:'16px',cursor:'pointer'}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'10px'}}>
-        <div>
-          <div style={{display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap',marginBottom:'4px'}}>
-            <span className="mono" style={{fontSize:'10.5px',color:'var(--hint)'}}>{entry.id}</span>
-            <span className="badge mono" style={{background:'var(--amber-100)',color:'var(--amber-800)',fontSize:'10.5px',padding:'1px 5px'}}>{entry.branch}</span>
-            <CollStatusBadge status={entry.collStatus} size="xs"/>
-          </div>
-          <div style={{fontWeight:700,fontSize:'16px',letterSpacing:'-.01em'}}>{entry.vehicleNo}</div>
-          {entry.keyCompany && <div style={{marginTop:'4px'}}><CompanyBadge keyCompany={entry.keyCompany} subCompany={entry.subCompany} zone={entry.zone} size="xs"/></div>}
+// ---------- Print ----------
+function buildPrintHtml(list){
+  return `
+    <h3 style="text-align:center;font-family:sans-serif;">Trip Settlement</h3>
+    ${list.map(s => `
+      <div style="font-family:sans-serif;margin-bottom:24px;border:1px solid #333;padding:10px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div><strong>Driver:</strong> ${s.driver||'—'}</div>
+          <div><strong>Vehicle No:</strong> ${s.vehicleNo}</div>
+          <div><strong>Date:</strong> ${s.date||''}</div>
         </div>
-        <TripStatusBadge status={entry.tripStatus}/>
-      </div>
-      <div style={{display:'flex',flexDirection:'column',gap:'4px',fontSize:'12.5px',color:'var(--ink-2)'}}>
-        <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
-          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{background:'#22c55e'}}></span>
-          <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{entry.fromLoc}</span>
-        </div>
-        <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
-          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{background:'#ef4444'}}></span>
-          <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{entry.toLoc}</span>
-        </div>
-      </div>
-      <div style={{borderTop:'1px solid var(--border)',marginTop:'12px',paddingTop:'10px',display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'8px',fontSize:'11.5px'}}>
-        <div><div className="mono" style={{color:'var(--hint)',fontSize:'10px',marginBottom:'2px'}}>DRIVER</div><div style={{fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{entry.driverName}</div></div>
-        <div><div className="mono" style={{color:'var(--hint)',fontSize:'10px',marginBottom:'2px'}}>SHIFT</div><div style={{fontWeight:600}}>{entry.shift}</div></div>
-        <div style={{textAlign:'right'}}><div className="mono" style={{color:'var(--hint)',fontSize:'10px',marginBottom:'2px'}}>ELAPSED</div><div className="mono" style={{fontWeight:700,color:'var(--amber-700)'}}>{elapsed}</div></div>
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
-   ENTRIES PAGE
-═══════════════════════════════════════════════════════ */
-function EntriesPage({ onNew, onEdit }) {
-  const { entries } = useData();
-  const [filters, setFilters] = useState({
-    date:'all', collStatus:'all', tripStatus:'all', shift:'all', branch:'all', keyCompany:'all', zone:'all', search:''
-  });
-  const [page, setPage] = useState(1);
-  const PER_PAGE = 25;
-
-  const dates = useMemo(()=>[...new Set(entries.map(e=>e.date))].sort().reverse(),[entries]);
-
-  const filtered = useMemo(()=>entries.filter(e=>{
-    if (filters.date       !=='all' && e.date       !==filters.date)       return false;
-    if (filters.collStatus !=='all' && e.collStatus !==filters.collStatus) return false;
-    if (filters.tripStatus !=='all' && e.tripStatus !==filters.tripStatus) return false;
-    if (filters.shift      !=='all' && e.shift      !==filters.shift)      return false;
-    if (filters.branch     !=='all' && e.branch     !==filters.branch)     return false;
-    if (filters.keyCompany !=='all' && e.keyCompany !==filters.keyCompany) return false;
-    if (filters.zone       !=='all' && e.zone       !==filters.zone)       return false;
-    if (filters.search) {
-      const s=filters.search.toLowerCase();
-      if (!`${e.id} ${e.vehicleNo} ${e.fromLoc} ${e.toLoc} ${e.driverName} ${e.driverMobile} ${e.incharge} ${e.branch} ${e.keyCompany} ${e.subCompany} ${e.zone}`.toLowerCase().includes(s)) return false;
-    }
-    return true;
-  }),[entries,filters]);
-
-  const totalPages = Math.ceil(filtered.length / PER_PAGE);
-  const paged = filtered.slice((page-1)*PER_PAGE, page*PER_PAGE);
-
-  useEffect(()=>setPage(1),[filters]);
-
-  const setF = (key, val) => setFilters(f=>({...f,[key]:val}));
-
-  const exportCSV = () => {
-    const h=['ID','Date','Coll Status','Trip Status','Key Company','Sub Company','Zone','Vehicle','Branch','From','To','Shift','Incharge','Driver','Mobile','Out Time','In Time','Duration','Remarks'];
-    const rows=filtered.map(e=>[e.id,e.date,e.collStatus,e.tripStatus,e.keyCompany,e.subCompany,e.zone,e.vehicleNo,e.branch,e.fromLoc,e.toLoc,e.shift,e.incharge,e.driverName,e.driverMobile,fmtTime(e.outTime),fmtTime(e.inTime),fmtDur(e.outTime,e.inTime),e.remarks]);
-    const csv=[h,...rows].map(r=>r.map(c=>`"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-    a.download=`uddhava-${todayStr()}.csv`;a.click();
-  };
-
-  const selStyle = {padding:'7px 10px',fontSize:'12.5px',borderRadius:'var(--radius-sm)',border:'1.5px solid var(--border)',background:'var(--surface)',color:'var(--ink)',flexShrink:0,minWidth:'110px'};
-
-  return (
-    <div style={{display:'flex',flexDirection:'column',gap:'16px'}}>
-      {/* Header */}
-      <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:'12px'}}>
-        <div>
-          <h2 style={{fontWeight:700,fontSize:'20px',letterSpacing:'-.03em'}}>All Entries</h2>
-          <p style={{fontSize:'12.5px',color:'var(--muted)',marginTop:'2px'}}>{filtered.length} of {entries.length} entries</p>
-        </div>
-        <div style={{display:'flex',gap:'8px'}}>
-          <button onClick={exportCSV} className="btn btn-ghost btn-sm">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
-            Export CSV
-          </button>
-          <button onClick={onNew} className="btn btn-primary btn-sm">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
-            New Entry
-          </button>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="card" style={{padding:'14px 16px'}}>
-        <div style={{display:'flex',flexWrap:'wrap',gap:'8px',alignItems:'center'}}>
-          <input value={filters.search} onChange={e=>setF('search',e.target.value)}
-            placeholder="Search vehicle, driver, company, zone…"
-            style={{flex:'1 1 200px',padding:'7px 12px',fontSize:'13px'}}/>
-          <select value={filters.date} onChange={e=>setF('date',e.target.value)} style={selStyle}>
-            <option value="all">All Dates</option>
-            {dates.map(d=><option key={d} value={d}>{fmtDate(d)}</option>)}
-          </select>
-          <select value={filters.collStatus} onChange={e=>setF('collStatus',e.target.value)} style={selStyle}>
-            <option value="all">All Coll. Status</option>
-            {COLL_STATUSES.map(s=><option key={s.key} value={s.key}>{s.label}</option>)}
-          </select>
-          <select value={filters.tripStatus} onChange={e=>setF('tripStatus',e.target.value)} style={selStyle}>
-            <option value="all">All Trip Status</option>
-            {TRIP_STATUSES.map(s=><option key={s.key} value={s.key}>{s.label}</option>)}
-          </select>
-          <select value={filters.keyCompany} onChange={e=>setF('keyCompany',e.target.value)} style={selStyle}>
-            <option value="all">All Companies</option>
-            {KEY_COMPANY_NAMES.map(k=><option key={k} value={k}>{k}</option>)}
-          </select>
-          <select value={filters.zone} onChange={e=>setF('zone',e.target.value)} style={selStyle}>
-            <option value="all">All Zones</option>
-            {ZONES.map(z=><option key={z} value={z}>{z}</option>)}
-          </select>
-          <select value={filters.branch} onChange={e=>setF('branch',e.target.value)} style={selStyle}>
-            <option value="all">All Branches</option>
-            {BRANCHES.map(b=><option key={b} value={b}>{b}</option>)}
-          </select>
-          <select value={filters.shift} onChange={e=>setF('shift',e.target.value)} style={selStyle}>
-            <option value="all">All Shifts</option>
-            {SHIFTS.map(s=><option key={s} value={s}>{s}</option>)}
-          </select>
-          {Object.entries(filters).some(([k,v])=>v!=='all'&&v!=='') && (
-            <button onClick={()=>setFilters({date:'all',collStatus:'all',tripStatus:'all',shift:'all',branch:'all',keyCompany:'all',zone:'all',search:''})}
-              className="btn btn-ghost btn-sm" style={{color:'var(--red-600)',borderColor:'var(--red-100)'}}>
-              Clear filters
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Table desktop */}
-      <div className="card desktop-only" style={{overflow:'hidden'}}>
-        <div style={{overflowX:'auto'}}>
-          <table className="tbl">
-            <thead>
+        <table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;">
+          <thead>
+            <tr style="background:#eee;">
+              <th style="border:1px solid #333;padding:4px;">From</th>
+              <th style="border:1px solid #333;padding:4px;">To</th>
+              <th style="border:1px solid #333;padding:4px;">LR No</th>
+              <th style="border:1px solid #333;padding:4px;">Trip Payment</th>
+              <th style="border:1px solid #333;padding:4px;">Extra</th>
+              <th style="border:1px solid #333;padding:4px;">Advance</th>
+              <th style="border:1px solid #333;padding:4px;">Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${s.legs.map((l,i) => `
               <tr>
-                {['Entry ID','Coll. Status','Company / Zone','Vehicle','Branch','From → To','Shift / Incharge','Driver','Out → In','Duration','Trip Status',''].map(h=>(
-                  <th key={h}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {paged.map(e=>(
-                <tr key={e.id}>
-                  <td>
-                    <div className="mono" style={{fontSize:'11.5px',color:'var(--hint)'}}>{e.id}</div>
-                    <div style={{fontSize:'11px',color:'var(--hint)',marginTop:'1px'}}>{fmtDate(e.date)}</div>
-                  </td>
-                  <td><CollStatusBadge status={e.collStatus} size="xs"/></td>
-                  <td><CompanyBadge keyCompany={e.keyCompany} subCompany={e.subCompany} zone={e.zone} size="xs"/></td>
-                  <td style={{fontWeight:700,fontSize:'14px',letterSpacing:'-.01em'}}>{e.vehicleNo}</td>
-                  <td><span className="badge mono" style={{background:'var(--amber-100)',color:'var(--amber-800)',fontSize:'11px'}}>{e.branch}</span></td>
-                  <td>
-                    <div style={{fontSize:'12.5px'}}>{e.fromLoc}</div>
-                    <div style={{fontSize:'11.5px',color:'var(--muted)',marginTop:'1px'}}>↓ {e.toLoc}</div>
-                  </td>
-                  <td>
-                    <div style={{fontSize:'12.5px',fontWeight:600}}>{e.shift}</div>
-                    <div style={{fontSize:'11.5px',color:'var(--muted)'}}>{e.incharge}</div>
-                  </td>
-                  <td>
-                    <div style={{fontSize:'12.5px',fontWeight:600}}>{e.driverName}</div>
-                    <div className="mono" style={{fontSize:'11px',color:'var(--muted)'}}>{e.driverMobile}</div>
-                  </td>
-                  <td className="mono" style={{fontSize:'11.5px'}}>
-                    <div style={{color:'var(--green-700)'}}>{fmtTime(e.outTime)}</div>
-                    <div style={{color:'var(--hint)'}}>{fmtTime(e.inTime)}</div>
-                  </td>
-                  <td className="mono" style={{fontSize:'12px',fontWeight:600}}>{fmtDur(e.outTime,e.inTime)}</td>
-                  <td><TripStatusBadge status={e.tripStatus}/></td>
-                  <td>
-                    <button onClick={()=>onEdit(e)} className="btn btn-ghost btn-sm btn-icon" title="Edit">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {paged.length===0 && (
-                <tr><td colSpan={12} style={{textAlign:'center',padding:'40px',color:'var(--hint)',fontSize:'13px'}}>No entries match your filters.</td></tr>
-              )}
-            </tbody>
-          </table>
+                <td style="border:1px solid #333;padding:4px;">${l.from}</td>
+                <td style="border:1px solid #333;padding:4px;">${l.to}</td>
+                <td style="border:1px solid #333;padding:4px;">${l.lrNo||'—'}</td>
+                ${i===0 ? `<td style="border:1px solid #333;padding:4px;" rowspan="${s.legs.length}">₹${fmtNum(s.tripPayment,2)}</td>
+                <td style="border:1px solid #333;padding:4px;" rowspan="${s.legs.length}">₹${fmtNum(s.extraAmount,2)}</td>
+                <td style="border:1px solid #333;padding:4px;" rowspan="${s.legs.length}">₹${fmtNum(s.advance,2)}</td>
+                <td style="border:1px solid #333;padding:4px;" rowspan="${s.legs.length}">${s.remarks||''}</td>` : ''}
+              </tr>`).join('')}
+          </tbody>
+        </table>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:13px;">
+          <div>Km: ${fmtNum(s.km,0)} | Diesel Used: ${fmtNum(s.usedDiesel,2)} L | Mileage: ${fmtNum(s.mileage,2)} km/L | Excess: ${fmtNum(s.excessDiesel,2)} L ${s.dieselDebit ? '| Diesel Debit: ₹'+fmtNum(s.dieselDebit,2) : ''}</div>
+          <div style="font-weight:bold;">Total Amount: ₹${fmtNum(s.total,2)}</div>
         </div>
-        {totalPages>1 && (
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',borderTop:'1px solid var(--border)',fontSize:'12.5px',color:'var(--muted)'}}>
-            <span>Showing {(page-1)*PER_PAGE+1}–{Math.min(page*PER_PAGE,filtered.length)} of {filtered.length}</span>
-            <div style={{display:'flex',gap:'6px'}}>
-              <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1} className="btn btn-ghost btn-sm">← Prev</button>
-              {[...Array(Math.min(totalPages,7))].map((_,i)=>{
-                const p=i+1;
-                return <button key={p} onClick={()=>setPage(p)} className="btn btn-sm" style={{background: p===page ? 'var(--ink)' : 'transparent', color: p===page ? 'var(--amber-300)' : 'var(--muted)',border: p===page ? '1.5px solid var(--ink)' : '1.5px solid var(--border)'}}>{p}</button>;
-              })}
-              <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages} className="btn btn-ghost btn-sm">Next →</button>
-            </div>
-          </div>
-        )}
       </div>
-
-      {/* Mobile cards */}
-      <div className="mobile-only" style={{display:'flex',flexDirection:'column',gap:'10px'}}>
-        {paged.map(e=>(
-          <button key={e.id} onClick={()=>onEdit(e)} style={{width:'100%',textAlign:'left',background:'var(--surface)',border:'1.5px solid var(--border)',borderRadius:'var(--radius-lg)',padding:'14px',cursor:'pointer'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'8px'}}>
-              <div>
-                <div style={{display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap'}}>
-                  <span style={{fontWeight:700,fontSize:'15px'}}>{e.vehicleNo}</span>
-                  <span className="badge mono" style={{background:'var(--amber-100)',color:'var(--amber-800)',fontSize:'10.5px'}}>{e.branch}</span>
-                </div>
-                <div style={{marginTop:'4px',display:'flex',gap:'4px',flexWrap:'wrap'}}>
-                  <CollStatusBadge status={e.collStatus} size="xs"/>
-                  <TripStatusBadge status={e.tripStatus}/>
-                </div>
-              </div>
-            </div>
-            {e.keyCompany && <div style={{marginBottom:'8px'}}><CompanyBadge keyCompany={e.keyCompany} subCompany={e.subCompany} zone={e.zone} size="xs"/></div>}
-            <div style={{fontSize:'12.5px',color:'var(--ink-2)',display:'flex',flexDirection:'column',gap:'3px'}}>
-              <div>📍 {e.fromLoc} → {e.toLoc}</div>
-            </div>
-            <div style={{borderTop:'1px solid var(--border)',marginTop:'10px',paddingTop:'8px',display:'flex',justifyContent:'space-between',fontSize:'12px',color:'var(--muted)'}}>
-              <span>{e.driverName} · {e.shift}</span>
-              <span className="mono" style={{fontWeight:600}}>{fmtDur(e.outTime,e.inTime)}</span>
-            </div>
-          </button>
-        ))}
-        {paged.length===0 && <EmptyState text="No entries match your filters."/>}
-      </div>
-    </div>
-  );
+    `).join('')}
+  `;
+}
+function printOne(id){
+  const s = settlements.find(x => x.id === id);
+  if(!s) return;
+  document.getElementById('printArea').innerHTML = buildPrintHtml([s]);
+  window.print();
+}
+function printAll(){
+  const list = filteredSettlements('listVehicleFilter','listFromDate','listToDate')
+    .sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  if(list.length === 0){ alert('No settlements to print.'); return; }
+  document.getElementById('printArea').innerHTML = buildPrintHtml(list);
+  window.print();
 }
 
-/* ═══════════════════════════════════════════════════════
-   ENTRY MODAL
-═══════════════════════════════════════════════════════ */
-function EntryModal({ entry, onClose }) {
-  const isEdit = !!entry;
-  const [tab, setTab] = useState('single');
+// ---------- Dashboard ----------
+function renderDashboard(){
+  const filter = document.getElementById('dashVehicleFilter').value;
+  let sList = settlements.slice();
+  if(filter) sList = sList.filter(s => s.vehicleNo === filter);
 
-  // Close on escape
-  useEffect(()=>{
-    const h=e=>{ if(e.key==='Escape') onClose(); };
-    document.addEventListener('keydown',h);
-    return ()=>document.removeEventListener('keydown',h);
-  },[onClose]);
+  const totalTrip = sList.reduce((a,s)=>a+s.tripPayment,0);
+  const totalExtra = sList.reduce((a,s)=>a+s.extraAmount,0);
+  const totalAdvance = sList.reduce((a,s)=>a+s.advance,0);
+  const totalAmount = sList.reduce((a,s)=>a+s.total,0);
+  const totalDiesel = sList.reduce((a,s)=>a+(s.usedDiesel||0),0);
+  const totalDieselDebit = sList.reduce((a,s)=>a+(s.dieselDebit||0),0);
 
-  return (
-    <div className="anim-fade"
-      style={{position:'fixed',inset:0,background:'rgba(0,0,0,.55)',backdropFilter:'blur(4px)',zIndex:50,display:'flex',alignItems:'flex-end',justifyContent:'center',padding:'0'}}
-      onClick={e=>{ if(e.target===e.currentTarget) onClose(); }}>
-      <div className="anim-fade-up"
-        style={{background:'var(--surface)',width:'100%',maxWidth:'640px',maxHeight:'96vh',display:'flex',flexDirection:'column',borderRadius:'var(--radius-xl) var(--radius-xl) 0 0',boxShadow:'var(--shadow-lg)',overflow:'hidden'}}>
-        {/* Modal header */}
-        <div style={{padding:'20px 24px 0',flexShrink:0}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px'}}>
-            <div>
-              <div className="mono" style={{fontSize:'10px',color:'var(--hint)',letterSpacing:'.08em',marginBottom:'2px'}}>{isEdit?'EDIT ENTRY':'NEW ENTRY'}</div>
-              <h2 style={{fontWeight:700,fontSize:'18px',letterSpacing:'-.02em'}}>{isEdit?entry.id:'Log a Trip'}</h2>
-            </div>
-            <button onClick={onClose} className="btn btn-ghost btn-icon">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-          </div>
-          {!isEdit && (
-            <div style={{display:'flex',gap:'2px',borderBottom:'2px solid var(--border)',marginBottom:'-1px'}}>
-              {[{key:'single',label:'✏ Single Entry'},{key:'bulk',label:'📊 Bulk Upload'}].map(t=>(
-                <button key={t.key} onClick={()=>setTab(t.key)}
-                  className={`tab ${tab===t.key?'active':''}`} style={{fontSize:'13px',padding:'8px 14px'}}>
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+  document.getElementById('statTrip').textContent = fmtMoney(totalTrip);
+  document.getElementById('statExtra').textContent = fmtMoney(totalExtra);
+  document.getElementById('statAdvance').textContent = fmtMoney(totalAdvance);
+  document.getElementById('statTotal').textContent = fmtMoney(totalAmount);
+  document.getElementById('statDiesel').textContent = fmtNum(totalDiesel,1) + ' L';
+  document.getElementById('statDieselDebit').textContent = fmtMoney(totalDieselDebit);
 
-        {tab==='single' ? <SingleEntryForm entry={entry} onClose={onClose} isEdit={isEdit}/> : <BulkUploadForm onClose={onClose}/>}
-      </div>
-    </div>
-  );
+  // Vehicle-wise diesel consumption table (always all vehicles, ignoring the single-vehicle filter so it stays a comparison view)
+  const byVehicle = {};
+  settlements.forEach(s => {
+    if(!byVehicle[s.vehicleNo]) byVehicle[s.vehicleNo] = { trips:0, km:0, used:0, udd:0, debit:0 };
+    const b = byVehicle[s.vehicleNo];
+    b.trips += 1; b.km += (s.km||0); b.used += (s.usedDiesel||0); b.udd += (s.uddDiesel||0); b.debit += (s.dieselDebit||0);
+  });
+  const vTbody = document.getElementById('vehicleDieselTableBody');
+  const vKeys = Object.keys(byVehicle);
+  vTbody.innerHTML = vKeys.length ? vKeys.map(veh => {
+    const b = byVehicle[veh];
+    const avgMileage = b.used>0 ? b.km/b.used : 0;
+    const excess = b.udd - b.used;
+    return `<tr>
+      <td><strong>${veh}</strong></td>
+      <td>${b.trips}</td>
+      <td>${fmtNum(b.km,0)}</td>
+      <td>${fmtNum(b.used,2)}</td>
+      <td>${fmtNum(avgMileage,2)}</td>
+      <td>${fmtNum(b.udd,2)}</td>
+      <td><span class="badge ${excess>=0?'badge-excess-pos':'badge-excess-neg'}">${fmtNum(excess,2)}</span></td>
+      <td>${fmtMoney(b.debit)}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="8" class="empty-hint">No trip data yet.</td></tr>`;
+
+  // Vehicle trip details table
+  const details = sList.slice().sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const tTbody = document.getElementById('tripDetailsTableBody');
+  tTbody.innerHTML = details.length ? details.map(s => `
+    <tr>
+      <td>${s.date||''}</td><td>${s.vehicleNo}</td><td>${s.driver||'—'}</td>
+      <td>${s.legs.map(l=>l.from+' → '+l.to).join(', ')}</td>
+      <td>${fmtNum(s.km,0)}</td>
+      <td>${fmtNum(s.usedDiesel,2)}</td>
+      <td>${fmtNum(s.mileage,2)}</td>
+      <td class="fw-bold">${fmtMoney(s.total)}</td>
+    </tr>`).join('') : `<tr><td colspan="8" class="empty-hint">No settlements yet.</td></tr>`;
 }
 
-/* ═══════════════════════════════════════════════════════
-   SINGLE ENTRY FORM
-═══════════════════════════════════════════════════════ */
-function SingleEntryForm({ entry, onClose, isEdit }) {
-  const { addEntry, updateEntry, deleteEntry } = useData();
-  const BLANK = {
-    type:'collection', date:todayStr(), collStatus:'created',
-    keyCompany:'', subCompany:'', zone:'',
-    vehicleNo:'', fromLoc:'', toLoc:'',
-    branch:'', shift:'Day', incharge:'',
-    driverName:'', driverMobile:'',
-    outTime:'', inTime:'', tripStatus:'transit', remarks:''
-  };
-
-  const [form, setForm]   = useState(entry ? {...entry} : BLANK);
-  const [errors, setErr]  = useState({});
-  const [saving, setSave] = useState(false);
-  const [delConf, setDel] = useState(false);
-
-  const set = (k,v) => setForm(f=>({...f,[k]:v}));
-  const setNow = (field) => set(field, nowInput());
-
-  const handleCompany = ({keyCompany, subCompany, zone}) => setForm(f=>({...f,keyCompany,subCompany,zone}));
-
-  const validate = () => {
-    const e = {};
-    if (!form.keyCompany)           e.keyCompany='Required';
-    if (!form.subCompany)           e.subCompany='Required';
-    if (!form.zone)                 e.zone='Required';
-    if (!form.vehicleNo.trim())     e.vehicleNo='Required';
-    if (!form.branch)               e.branch='Required';
-    if (!form.fromLoc.trim())       e.fromLoc='Required';
-    if (!form.toLoc.trim())         e.toLoc='Required';
-    if (!form.incharge)             e.incharge='Required';
-    if (!form.driverName.trim())    e.driverName='Required';
-    if (!form.driverMobile.trim())  e.driverMobile='Required';
-    if (!form.outTime)              e.outTime='Required';
-    if (form.tripStatus==='delivered'&&!form.inTime) e.inTime='Required for delivered';
-    if (form.inTime&&form.outTime&&new Date(form.inTime)<new Date(form.outTime)) e.inTime='Must be after out time';
-    setErr(e);
-    return Object.keys(e).length===0;
-  };
-
-  const save = async () => {
-    if (!validate()) return;
-    setSave(true);
-    try {
-      if (isEdit) await updateEntry(entry.id, {...form, id:entry.id, createdAt:entry.createdAt});
-      else        await addEntry({...form, id:genId(), createdAt:new Date().toISOString()});
-      onClose();
-    } catch(err) { alert('Save failed: '+err.message); setSave(false); }
-  };
-
-  const remove = async () => {
-    setSave(true);
-    try { await deleteEntry(entry.id); onClose(); }
-    catch(err) { alert('Delete failed: '+err.message); setSave(false); setDel(false); }
-  };
-
-  const markDelivered = () => setForm(f=>({...f,tripStatus:'delivered',inTime:f.inTime||nowInput()}));
-
-  const secStyle = {background:'var(--surface-2)',borderRadius:'var(--radius-lg)',padding:'16px',marginBottom:'0'};
-  const rowStyle = {display:'grid',gap:'12px',gridTemplateColumns:'1fr 1fr'};
-  const monoLabel = {fontSize:'9.5px',fontWeight:700,color:'var(--hint)',letterSpacing:'.1em',marginBottom:'10px'};
-
-  return (
-    <>
-      <div style={{flex:1,overflowY:'auto',padding:'20px 24px',display:'flex',flexDirection:'column',gap:'16px'}}>
-
-        {/* Section: Company / Zone */}
-        <div style={secStyle}>
-          <div style={monoLabel}>COMPANY & ZONE</div>
-          <CompanySelector keyCompany={form.keyCompany} subCompany={form.subCompany} zone={form.zone}
-            onChange={handleCompany} errors={{keyCompany:errors.keyCompany,subCompany:errors.subCompany,zone:errors.zone}}/>
-        </div>
-
-        {/* Section: Collection Status */}
-        <div style={secStyle}>
-          <div style={monoLabel}>COLLECTION STATUS</div>
-          <CollStatusSelector value={form.collStatus} onChange={v=>set('collStatus',v)}/>
-        </div>
-
-        {/* Section: Trip details */}
-        <div style={secStyle}>
-          <div style={monoLabel}>TRIP DETAILS</div>
-          <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
-            <div style={rowStyle}>
-              <Field label="Vehicle Number" error={errors.vehicleNo} required>
-                <input value={form.vehicleNo} onChange={e=>set('vehicleNo',e.target.value.toUpperCase())} placeholder="TN-09-AB-1234" className="mono"/>
-              </Field>
-              <Field label="Date" required>
-                <input type="date" value={form.date} onChange={e=>set('date',e.target.value)}/>
-              </Field>
-            </div>
-
-            <div style={rowStyle}>
-              <Field label="From Location" error={errors.fromLoc} required hint="Pickup point">
-                <input value={form.fromLoc} onChange={e=>set('fromLoc',e.target.value)} placeholder="Vendor / company name"/>
-              </Field>
-              <Field label="To Location" error={errors.toLoc} required hint="Drop point">
-                <input value={form.toLoc} onChange={e=>set('toLoc',e.target.value)} placeholder="Destination hub / branch"/>
-              </Field>
-            </div>
-
-            <Field label="Branch" error={errors.branch} required>
-              <SearchableSelect options={BRANCHES} value={form.branch} onChange={v=>set('branch',v)} placeholder="Select branch"/>
-            </Field>
-          </div>
-        </div>
-
-        {/* Section: Shift & Incharge */}
-        <div style={secStyle}>
-          <div style={monoLabel}>SHIFT & INCHARGE</div>
-          <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
-            <div>
-              <label className="text-xs font-semibold mb-2 block" style={{color:'var(--ink-2)'}}>Shift</label>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
-                {SHIFTS.map(s=>(
-                  <button key={s} type="button" onClick={()=>set('shift',s)}
-                    className="btn"
-                    style={{
-                      justifyContent:'center',gap:'6px',padding:'9px',
-                      background: form.shift===s ? 'var(--ink)' : 'var(--surface)',
-                      border: `1.5px solid ${form.shift===s ? 'var(--ink)' : 'var(--border)'}`,
-                      color: form.shift===s ? 'var(--amber-300)' : 'var(--muted)',
-                    }}>
-                    {s==='Day'?'☀️':'🌙'} {s}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <Field label="Shift Incharge" error={errors.incharge} required>
-              <SearchableSelect options={INCHARGES} value={form.incharge} onChange={v=>set('incharge',v)} placeholder="Select incharge"/>
-            </Field>
-          </div>
-        </div>
-
-        {/* Section: Driver */}
-        <div style={secStyle}>
-          <div style={monoLabel}>DRIVER INFO</div>
-          <div style={rowStyle}>
-            <Field label="Driver Name" error={errors.driverName} required>
-              <input value={form.driverName} onChange={e=>set('driverName',e.target.value)} placeholder="Full name"/>
-            </Field>
-            <Field label="Mobile Number" error={errors.driverMobile} required>
-              <input type="tel" value={form.driverMobile} onChange={e=>set('driverMobile',e.target.value)} placeholder="+91-XXXXX-XXXXX" className="mono"/>
-            </Field>
-          </div>
-        </div>
-
-        {/* Section: Timing */}
-        <div style={secStyle}>
-          <div style={monoLabel}>TIMING</div>
-          <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
-            <div style={rowStyle}>
-              <Field label="Out Time" error={errors.outTime} required>
-                <div style={{display:'flex',gap:'6px'}}>
-                  <input type="datetime-local" value={form.outTime} onChange={e=>set('outTime',e.target.value)} style={{flex:1}}/>
-                  <button type="button" onClick={()=>setNow('outTime')} className="btn btn-ghost btn-sm" style={{flexShrink:0,fontWeight:700,fontSize:'11px'}}>NOW</button>
-                </div>
-              </Field>
-              <Field label="In Time" error={errors.inTime}>
-                <div style={{display:'flex',gap:'6px'}}>
-                  <input type="datetime-local" value={form.inTime} onChange={e=>set('inTime',e.target.value)} style={{flex:1}}/>
-                  <button type="button" onClick={()=>setNow('inTime')} className="btn btn-ghost btn-sm" style={{flexShrink:0,fontWeight:700,fontSize:'11px'}}>NOW</button>
-                </div>
-              </Field>
-            </div>
-            {form.outTime && form.inTime && (
-              <div style={{background:'var(--amber-50)',border:'1.5px solid var(--amber-200)',borderRadius:'var(--radius)',padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                <span style={{fontSize:'12.5px',color:'var(--amber-700)',fontWeight:600}}>⏱ Turnaround time</span>
-                <span className="mono" style={{fontWeight:700,color:'var(--amber-900)',fontSize:'14px'}}>{fmtDur(form.outTime,form.inTime)}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Section: Trip status */}
-        <div style={secStyle}>
-          <div style={monoLabel}>TRIP STATUS</div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
-            <button type="button" onClick={()=>set('tripStatus','transit')}
-              style={{padding:'12px',borderRadius:'var(--radius)',border:`1.5px solid ${form.tripStatus==='transit'?'var(--amber-400)':'var(--border)'}`,background: form.tripStatus==='transit' ? 'var(--amber-50)' : 'var(--surface)',cursor:'pointer',textAlign:'left',transition:'all .15s',boxShadow: form.tripStatus==='transit' ? '0 0 0 2px var(--amber-200)' : 'none'}}>
-              <div style={{fontWeight:700,fontSize:'13px',display:'flex',alignItems:'center',gap:'6px',color: form.tripStatus==='transit' ? 'var(--amber-800)' : 'var(--ink-2)'}}>
-                <span className="w-2 h-2 rounded-full" style={{background:'#f59e0b',flexShrink:0}}></span>In Transit
-              </div>
-              <div style={{fontSize:'11.5px',color:'var(--muted)',marginTop:'3px'}}>Vehicle on route</div>
-            </button>
-            <button type="button" onClick={markDelivered}
-              style={{padding:'12px',borderRadius:'var(--radius)',border:`1.5px solid ${form.tripStatus==='delivered'?'var(--green-500)':'var(--border)'}`,background: form.tripStatus==='delivered' ? 'var(--green-50)' : 'var(--surface)',cursor:'pointer',textAlign:'left',transition:'all .15s',boxShadow: form.tripStatus==='delivered' ? '0 0 0 2px var(--green-100)' : 'none'}}>
-              <div style={{fontWeight:700,fontSize:'13px',display:'flex',alignItems:'center',gap:'6px',color: form.tripStatus==='delivered' ? 'var(--green-700)' : 'var(--ink-2)'}}>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" style={{flexShrink:0}}><path d="M5 13l4 4L19 7"/></svg>
-                Delivered
-              </div>
-              <div style={{fontSize:'11.5px',color:'var(--muted)',marginTop:'3px'}}>Trip completed</div>
-            </button>
-          </div>
-        </div>
-
-        {/* Remarks */}
-        <div style={secStyle}>
-          <div style={monoLabel}>REMARKS</div>
-          <textarea value={form.remarks} onChange={e=>set('remarks',e.target.value)} rows={2} placeholder="Optional notes…" style={{resize:'none'}}/>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div style={{padding:'14px 24px',borderTop:'1.5px solid var(--border)',background:'var(--surface-2)',display:'flex',gap:'8px',alignItems:'center',flexShrink:0}}>
-        {isEdit && !delConf && (
-          <button onClick={()=>setDel(true)} className="btn btn-danger btn-sm">Delete</button>
-        )}
-        {isEdit && delConf && (
-          <>
-            <span style={{fontSize:'12.5px',color:'var(--red-700)',fontWeight:600}}>Are you sure?</span>
-            <button onClick={remove} disabled={saving} className="btn btn-sm" style={{background:'var(--red-600)',color:'white',border:'none'}}>Yes, delete</button>
-            <button onClick={()=>setDel(false)} className="btn btn-ghost btn-sm">Cancel</button>
-          </>
-        )}
-        <div style={{flex:1}}></div>
-        <button onClick={onClose} className="btn btn-ghost btn-sm">Cancel</button>
-        <button onClick={save} disabled={saving} className="btn btn-primary btn-sm">
-          {saving ? <span className="loader spin"></span> : null}
-          {isEdit ? 'Save Changes' : 'Log Entry'}
-        </button>
-      </div>
-    </>
-  );
+// ---------- Init ----------
+async function init(){
+  await loadAll();
+  refreshVehicleDropdowns();
+  renderVehicleTable();
+  renderSettlementsList();
+  renderDashboard();
+  addLegRow();
+  document.getElementById('f_date').valueAsDate = new Date();
+  ['f_tripPayment','f_extraAmount','f_advance'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', updateTotalPreview);
+  });
+  updateDieselPreview();
+  updateDieselDebit();
 }
-
-/* ═══════════════════════════════════════════════════════
-   BULK UPLOAD
-═══════════════════════════════════════════════════════ */
-function BulkUploadForm({ onClose }) {
-  const { addEntries } = useData();
-  const [rows, setRows]         = useState([]);
-  const [errs, setErrs]         = useState([]);
-  const [uploading, setUpl]     = useState(false);
-  const [dragOver, setDrag]     = useState(false);
-  const fileRef = useRef(null);
-
-  const COL_MAP = {
-    date:['date','Date','DATE'],collStatus:['coll status','collection status','Coll Status','Collection Status'],
-    keyCompany:['key company','key_company','Key Company'],subCompany:['sub company','sub_company','Sub Company'],
-    zone:['zone','Zone'],vehicleNo:['vehicle no','vehicle_no','Vehicle No','Vehicle'],
-    branch:['branch','Branch'],fromLoc:['from','from company','from location','From','From Company'],
-    toLoc:['to','to branch','to location','To','To Branch'],shift:['shift','Shift'],
-    incharge:['incharge','Incharge'],driverName:['driver name','driver_name','Driver Name','Driver'],
-    driverMobile:['mobile','mobile number','Mobile','Mobile Number'],
-    outTime:['out time','out_time','Out Time'],inTime:['in time','in_time','In Time'],
-    tripStatus:['trip status','trip_status','status','Status'],remarks:['remarks','Remarks','Notes'],
-  };
-  const resolveCol = raw => { const l=raw.toLowerCase().trim(); for(const [f,a] of Object.entries(COL_MAP)) { if(a.some(x=>x.toLowerCase()===l)) return f; } return null; };
-
-  const parseFile = file => {
-    const reader = new FileReader();
-    reader.onload = ev => {
-      try {
-        const wb = XLSX.read(ev.target.result,{type:'binary',cellDates:true});
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const raw = XLSX.utils.sheet_to_json(ws,{defval:''});
-        if (!raw.length) { alert('Sheet is empty.'); return; }
-
-        const hmap = {};
-        for (const k of Object.keys(raw[0])) { const f=resolveCol(k); if(f) hmap[f]=k; }
-
-        const parsed=[], errList=[];
-        raw.forEach((row, idx) => {
-          const get = f => { const k=hmap[f]; return k ? String(row[k]||'').trim() : ''; };
-          let date = get('date');
-          if (!date && hmap['date'] && row[hmap['date']] instanceof Date) date=row[hmap['date']].toISOString().slice(0,10);
-          if (date && date.includes('/')) { const [d,m,y]=date.split('/'); if(y) date=`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`; }
-
-          const rowErrs=[];
-          if (!date)               rowErrs.push('date missing');
-          if (!get('vehicleNo'))   rowErrs.push('vehicle no missing');
-          if (!get('fromLoc'))     rowErrs.push('from location missing');
-          if (!get('toLoc'))       rowErrs.push('to location missing');
-
-          const kc=get('keyCompany');
-          if (kc && !KEY_COMPANY_NAMES.includes(kc)) rowErrs.push(`unknown key company "${kc}"`);
-          const cs=get('collStatus')||'created';
-          if (!COLL_STATUSES.find(s=>s.key===cs)) rowErrs.push(`invalid coll status "${cs}"`);
-
-          const parseTime = (t, ref) => {
-            if (!t||t==='—') return null;
-            if (t instanceof Date) return t.toISOString();
-            const st=String(t).trim(); if(!st) return null;
-            try { const d=new Date(`${ref||date}T${st.length<=5?st+':00':st}`); if(!isNaN(d)) return d.toISOString(); } catch(_){}
-            return null;
-          };
-
-          if (rowErrs.length) errList.push({row:idx+2,msgs:rowErrs});
-          parsed.push({
-            id:genId(), date, type:'collection',
-            collStatus: cs, keyCompany:kc, subCompany:get('subCompany'), zone:get('zone'),
-            vehicleNo:get('vehicleNo').toUpperCase(), branch:get('branch'),
-            fromLoc:get('fromLoc'), toLoc:get('toLoc'),
-            shift:get('shift')||'Day', incharge:get('incharge'),
-            driverName:get('driverName'), driverMobile:get('driverMobile'),
-            outTime:parseTime(get('outTime'),date), inTime:parseTime(get('inTime'),date),
-            tripStatus:(get('tripStatus')||'transit').toLowerCase().includes('deliver')?'delivered':'transit',
-            remarks:get('remarks'), createdAt:new Date().toISOString(), _err:rowErrs,
-          });
-        });
-        setRows(parsed); setErrs(errList);
-      } catch(e) { alert('Could not read file: '+e.message); }
-    };
-    reader.readAsBinaryString(file);
-  };
-
-  const handleFile = f => { if(!f) return; if(!f.name.match(/\.(xlsx|xls|csv)$/i)) { alert('Please upload .xlsx, .xls, or .csv'); return; } parseFile(f); };
-
-  const upload = async () => {
-    const valid = rows.filter(r=>r._err.length===0);
-    if (!valid.length) { alert('No valid rows.'); return; }
-    setUpl(true);
-    try { await addEntries(valid.map(({_err,...r})=>r)); onClose(); }
-    catch(e) { alert('Upload failed: '+e.message); setUpl(false); }
-  };
-
-  const downloadTemplate = () => {
-    const headers = ['Date','Coll Status','Key Company','Sub Company','Zone','Vehicle No','Branch','From Location','To Location','Shift','Incharge','Driver Name','Mobile Number','Out Time','In Time','Trip Status','Remarks'];
-    const s1 = ['2026-05-15','created','SDF','SDF Plant A','Zone 1','TN-09-AB-1234','TVK','Sundaram Textiles','TVK Hub','Day','Vinoth','Suresh Kumar','+91-98400-11111','07:30','09:45','delivered',''];
-    const s2 = ['2026-05-15','hold','CAPARO','CAPARO Unit A','Zone 2','TN-09-CD-5678','RNT','CAPARO Chennai','RNT Hub','Night','Mani','Raj Pillai','+91-98400-22222','20:00','','transit','On hold - client request'];
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet([headers,s1,s2]);
-    ws['!cols'] = Array(headers.length).fill({wch:20});
-    XLSX.utils.book_append_sheet(wb,'Entries',ws);
-    const instr = [['Column','Field','Required','Notes'],['A','Date','Yes','YYYY-MM-DD'],['B','Coll Status','No','created / hold / cancel / completed'],['C','Key Company','Yes',KEY_COMPANY_NAMES.join(', ')],['D','Sub Company','Yes','Match the key company'],['E','Zone','Yes','Zone 1, Zone 2, Zone 3, Zone 4'],['F','Vehicle No','Yes','e.g. TN-09-AB-1234'],['G','Branch','No',BRANCHES.join(', ')],['H','From Location','Yes','Pickup point'],['I','To Location','Yes','Drop point'],['J','Shift','No','Day / Night'],['K','Incharge','No',''],['L','Driver Name','No',''],['M','Mobile Number','No',''],['N','Out Time','No','HH:MM'],['O','In Time','No','HH:MM'],['P','Trip Status','No','transit / delivered'],['Q','Remarks','No','']];
-    const wi = XLSX.utils.aoa_to_sheet(instr);
-    wi['!cols'] = [{wch:10},{wch:18},{wch:10},{wch:50}];
-    XLSX.utils.book_append_sheet(wb,'Instructions',wi);
-    XLSX.writeFile(wb,'uddhava-template.xlsx');
-  };
-
-  return (
-    <>
-      <div style={{flex:1,overflowY:'auto',padding:'20px 24px',display:'flex',flexDirection:'column',gap:'16px'}}>
-        <div style={{background:'var(--blue-50)',border:'1.5px solid var(--blue-100)',borderRadius:'var(--radius-lg)',padding:'16px'}}>
-          <div style={{fontWeight:700,fontSize:'14px',color:'var(--blue-800)',marginBottom:'6px'}}>📊 Bulk Upload via Excel / CSV</div>
-          <p style={{fontSize:'12.5px',color:'var(--blue-700)',marginBottom:'10px'}}>
-            Required columns: Date, Key Company, Sub Company, Zone, Vehicle No, From Location, To Location.
-          </p>
-          <div style={{fontSize:'11.5px',color:'var(--blue-700)',marginBottom:'10px'}}>
-            <strong>Coll Status:</strong> created · hold · cancel · completed<br/>
-            <strong>Key Companies:</strong> {KEY_COMPANY_NAMES.join(', ')}<br/>
-            <strong>Zones:</strong> Zone 1 · Zone 2 · Zone 3 · Zone 4
-          </div>
-          <button onClick={downloadTemplate} className="btn btn-sm" style={{background:'var(--blue-600)',color:'white',border:'none'}}>
-            ↓ Download Template
-          </button>
-        </div>
-
-        {rows.length===0 ? (
-          <div className={`drop-zone ${dragOver?'drag-over':''}`}
-            style={{padding:'48px',textAlign:'center'}}
-            onDragOver={e=>{e.preventDefault();setDrag(true)}}
-            onDragLeave={()=>setDrag(false)}
-            onDrop={e=>{e.preventDefault();setDrag(false);handleFile(e.dataTransfer.files[0])}}
-            onClick={()=>fileRef.current?.click()}>
-            <div style={{fontSize:'40px',marginBottom:'12px'}}>📂</div>
-            <div style={{fontWeight:700,fontSize:'14px',color:'var(--ink-2)',marginBottom:'4px'}}>Drop your Excel or CSV here</div>
-            <div style={{fontSize:'12.5px',color:'var(--hint)'}}>or click to browse · .xlsx · .xls · .csv</div>
-            <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{display:'none'}} onChange={e=>handleFile(e.target.files[0])}/>
-          </div>
-        ) : (
-          <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-              <div>
-                <div style={{fontWeight:700}}>{rows.length} rows parsed</div>
-                <div style={{fontSize:'12.5px',color:'var(--muted)',marginTop:'2px'}}>
-                  <span style={{color:'var(--green-700)',fontWeight:600}}>{rows.filter(r=>r._err.length===0).length} valid</span>
-                  {errs.length>0 && <span style={{color:'var(--red-700)',fontWeight:600,marginLeft:'8px'}}>{errs.length} with errors</span>}
-                </div>
-              </div>
-              <button onClick={()=>{setRows([]);setErrs([])}} className="btn btn-ghost btn-sm">✕ Clear</button>
-            </div>
-            {errs.length>0 && (
-              <div style={{background:'var(--red-50)',border:'1.5px solid var(--red-100)',borderRadius:'var(--radius)',padding:'12px',maxHeight:'120px',overflowY:'auto'}}>
-                {errs.map((e,i)=>(
-                  <div key={i} style={{fontSize:'12px',color:'var(--red-700)',marginBottom:'2px'}}>
-                    <span className="mono" style={{fontWeight:600}}>Row {e.row}:</span> {e.msgs.join(', ')}
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="card" style={{overflow:'hidden',maxHeight:'280px',overflowY:'auto'}}>
-              <table className="tbl">
-                <thead>
-                  <tr>{['#','Date','Coll Status','Key Co.','Sub Co.','Zone','Vehicle','Branch','Trip Status',''].map(h=><th key={h}>{h}</th>)}</tr>
-                </thead>
-                <tbody>
-                  {rows.map((r,i)=>(
-                    <tr key={i} style={{background: r._err.length ? 'var(--red-50)' : 'transparent'}}>
-                      <td className="mono" style={{color:'var(--hint)',fontSize:'11px'}}>{i+2}</td>
-                      <td>{r.date}</td>
-                      <td><CollStatusBadge status={r.collStatus} size="xs"/></td>
-                      <td style={{fontWeight:700}}>{r.keyCompany||'—'}</td>
-                      <td style={{color:'var(--muted)',maxWidth:'80px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.subCompany||'—'}</td>
-                      <td>{r.zone ? <ZonePill zone={r.zone}/> : '—'}</td>
-                      <td className="mono" style={{fontWeight:700}}>{r.vehicleNo}</td>
-                      <td><span className="badge mono" style={{background:'var(--amber-100)',color:'var(--amber-800)',fontSize:'10px'}}>{r.branch||'—'}</span></td>
-                      <td><TripStatusBadge status={r.tripStatus}/></td>
-                      <td>{r._err.length ? <span title={r._err.join(', ')} style={{color:'var(--red-600)',cursor:'help'}}>⚠</span> : <span style={{color:'var(--green-600)'}}>✓</span>}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div style={{padding:'14px 24px',borderTop:'1.5px solid var(--border)',background:'var(--surface-2)',display:'flex',gap:'8px',flexShrink:0}}>
-        <div style={{flex:1}}></div>
-        <button onClick={onClose} className="btn btn-ghost btn-sm">Cancel</button>
-        {rows.length>0 && (
-          <button onClick={upload} disabled={uploading||rows.filter(r=>r._err.length===0).length===0} className="btn btn-primary btn-sm">
-            {uploading ? <span className="loader spin"></span> : null}
-            Upload {rows.filter(r=>r._err.length===0).length} Entries
-          </button>
-        )}
-      </div>
-    </>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
-   BAR CHART
-═══════════════════════════════════════════════════════ */
-function BarChart({ data }) {
-  const [hov, setHov] = useState(null);
-  const CH=200,PL=32,PR=12,PT=20,PB=32;
-  const chartH=CH-PT-PB;
-  const maxV=Math.max(...data.map(d=>d.total),1);
-  const gridMax=Math.ceil(maxV/5)*5||5;
-  const svgW=Math.max(400,data.length*72+PL+PR);
-  const yGrids=5;
-  const yLabels=Array.from({length:yGrids+1},(_,i)=>Math.round((yGrids-i)*gridMax/yGrids));
-
-  return (
-    <div style={{overflowX:'auto'}}>
-      <svg viewBox={`0 0 ${svgW} ${CH}`} style={{width:`${svgW}px`,height:`${CH}px`,display:'block'}}>
-        {yLabels.map((v,i)=>{
-          const y=PT+(i/yGrids)*chartH;
-          return <g key={v}>
-            <line x1={PL} x2={svgW-PR} y1={y} y2={y} stroke="var(--border)" strokeWidth="1" strokeDasharray={i===yGrids?'0':'3 3'}/>
-            <text x={PL-4} y={y+4} textAnchor="end" fontSize="9" fill="var(--hint)" fontFamily="DM Mono,monospace">{v}</text>
-          </g>;
-        })}
-        {data.map((d,idx)=>{
-          const sw=(svgW-PL-PR)/data.length;
-          const bw=(sw*0.6)/3-1;
-          const x0=PL+idx*sw+sw*0.2;
-          const yB=PT+chartH;
-          const tH=chartH*(d.total/gridMax);
-          const dH=chartH*(d.delivered/gridMax);
-          const trH=chartH*(d.transit/gridMax);
-          const lbl=new Date(d.date).toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
-          const isH=hov===idx;
-          return (
-            <g key={d.date} onMouseEnter={()=>setHov(idx)} onMouseLeave={()=>setHov(null)} style={{cursor:'pointer'}}>
-              {isH && <rect x={PL+idx*sw} y={PT} width={sw} height={chartH} fill="var(--amber-50)" rx="4"/>}
-              <rect x={x0} y={yB-tH} width={bw} height={Math.max(tH,2)} rx="2" fill={isH?'#d97706':'#f59e0b'}/>
-              {d.total>0 && <text x={x0+bw/2} y={yB-tH-5} textAnchor="middle" fontSize="9" fontWeight="700" fill="var(--amber-800)" fontFamily="DM Mono,monospace">{d.total}</text>}
-              <rect x={x0+bw+1} y={yB-dH} width={bw} height={Math.max(dH,2)} rx="2" fill={isH?'#15803d':'#22c55e'}/>
-              {d.delivered>0 && <text x={x0+bw*1.5+1} y={yB-dH-5} textAnchor="middle" fontSize="9" fontWeight="700" fill="#14532d" fontFamily="DM Mono,monospace">{d.delivered}</text>}
-              <rect x={x0+bw*2+2} y={yB-trH} width={bw} height={Math.max(trH,2)} rx="2" fill={isH?'#92400e':'#fbbf24'} opacity=".7"/>
-              <text x={x0+bw*1.5} y={yB+16} textAnchor="middle" fontSize="9" fill="var(--muted)" fontFamily="DM Mono,monospace">{lbl}</text>
-              {isH && (
-                <g>
-                  <rect x={Math.min(x0,svgW-130)} y={PT} width="120" height="62" rx="6" fill="var(--ink)" opacity=".95"/>
-                  <text x={Math.min(x0,svgW-130)+8} y={PT+15} fontSize="10" fontWeight="700" fill="#fbbf24" fontFamily="DM Mono,monospace">{lbl}</text>
-                  <text x={Math.min(x0,svgW-130)+8} y={PT+30} fontSize="9" fill="#e2e8f0" fontFamily="DM Mono,monospace">Total: {d.total}</text>
-                  <text x={Math.min(x0,svgW-130)+8} y={PT+44} fontSize="9" fill="#86efac" fontFamily="DM Mono,monospace">Delivered: {d.delivered}</text>
-                  <text x={Math.min(x0,svgW-130)+8} y={PT+58} fontSize="9" fill="#fcd34d" fontFamily="DM Mono,monospace">Transit: {d.transit}</text>
-                </g>
-              )}
-            </g>
-          );
-        })}
-        <line x1={PL} x2={PL} y1={PT} y2={PT+chartH} stroke="var(--border-2)" strokeWidth="1"/>
-        <line x1={PL} x2={svgW-PR} y1={PT+chartH} y2={PT+chartH} stroke="var(--border-2)" strokeWidth="1"/>
-      </svg>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
-   REPORTS
-═══════════════════════════════════════════════════════ */
-function ReportsPage() {
-  const { entries } = useData();
-
-  const byDate = useMemo(()=>{
-    const m={};
-    entries.forEach(e=>{
-      if(!m[e.date]) m[e.date]={date:e.date,total:0,delivered:0,transit:0};
-      m[e.date].total++;
-      if(e.tripStatus==='delivered') m[e.date].delivered++; else m[e.date].transit++;
-    });
-    return Object.values(m).sort((a,b)=>a.date.localeCompare(b.date));
-  },[entries]);
-
-  const collStatusStats = useMemo(()=>COLL_STATUSES.map(s=>({
-    ...s, count: entries.filter(e=>e.collStatus===s.key).length
-  })),[entries]);
-
-  const byCompany = useMemo(()=>KEY_COMPANY_NAMES.map(k=>{
-    const ke=entries.filter(e=>e.keyCompany===k);
-    return {
-      key:k, total:ke.length,
-      delivered:ke.filter(e=>e.tripStatus==='delivered').length,
-      zones:ZONES.map(z=>({z,n:ke.filter(e=>e.zone===z).length})).filter(x=>x.n>0),
-      subs:KEY_COMPANIES[k].subs.map(s=>({s,n:ke.filter(e=>e.subCompany===s).length})).filter(x=>x.n>0),
-      collStatus:COLL_STATUSES.map(s=>({s:s.key,n:ke.filter(e=>e.collStatus===s.key).length})).filter(x=>x.n>0),
-    };
-  }).filter(x=>x.total>0),[entries]);
-
-  const byDriver = useMemo(()=>{
-    const m={};
-    entries.forEach(e=>{
-      if(!m[e.driverName]) m[e.driverName]={name:e.driverName,mobile:e.driverMobile,total:0,delivered:0,totalMin:0,cnt:0};
-      m[e.driverName].total++;
-      if(e.tripStatus==='delivered'){ m[e.driverName].delivered++; if(e.outTime&&e.inTime){m[e.driverName].totalMin+=(new Date(e.inTime)-new Date(e.outTime))/60000;m[e.driverName].cnt++;} }
-    });
-    return Object.values(m).map(d=>({...d,avg:d.cnt?Math.round(d.totalMin/d.cnt):0})).sort((a,b)=>b.delivered-a.delivered);
-  },[entries]);
-
-  const byBranch = useMemo(()=>BRANCHES.map(b=>({b,n:entries.filter(e=>e.branch===b).length,d:entries.filter(e=>e.branch===b&&e.tripStatus==='delivered').length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n),[entries]);
-
-  const cardSty = {background:'var(--surface)',border:'1.5px solid var(--border)',borderRadius:'var(--radius-lg)',padding:'20px',boxShadow:'var(--shadow-sm)'};
-  const sTitle = {fontWeight:700,fontSize:'15px',letterSpacing:'-.02em',marginBottom:'16px'};
-
-  return (
-    <div style={{display:'flex',flexDirection:'column',gap:'24px'}}>
-      <div>
-        <h2 style={{fontWeight:700,fontSize:'20px',letterSpacing:'-.03em'}}>Reports & Analytics</h2>
-        <p style={{fontSize:'12.5px',color:'var(--muted)',marginTop:'2px'}}>Performance across companies, zones, drivers, branches · All time</p>
-      </div>
-
-      {/* Collection status overview */}
-      <div style={cardSty}>
-        <div style={sTitle}>Collection Status Overview</div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'12px'}}>
-          {collStatusStats.map(s=>{
-            const pct = entries.length ? (s.count/entries.length)*100 : 0;
-            return (
-              <div key={s.key} style={{background:'var(--surface-2)',borderRadius:'var(--radius)',padding:'14px'}}>
-                <CollStatusBadge status={s.key}/>
-                <div style={{fontSize:'32px',fontWeight:700,letterSpacing:'-.04em',lineHeight:1,marginTop:'10px'}}>{s.count}</div>
-                <div style={{height:'4px',background:'var(--border)',borderRadius:'99px',marginTop:'10px',overflow:'hidden'}}>
-                  <div style={{height:'100%',background:'var(--amber-500)',borderRadius:'99px',width:`${pct}%`}}></div>
-                </div>
-                <div style={{fontSize:'11px',color:'var(--hint)',marginTop:'4px'}}>{Math.round(pct)}% of total</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Daily chart */}
-      <div style={cardSty}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px'}}>
-          <div style={{fontWeight:700,fontSize:'15px',letterSpacing:'-.02em'}}>Daily Trip Volume</div>
-          <div style={{display:'flex',gap:'12px',fontSize:'11.5px',color:'var(--muted)'}}>
-            <span style={{display:'flex',alignItems:'center',gap:'4px'}}><span style={{width:'10px',height:'10px',borderRadius:'2px',background:'#f59e0b',display:'inline-block'}}></span>Total</span>
-            <span style={{display:'flex',alignItems:'center',gap:'4px'}}><span style={{width:'10px',height:'10px',borderRadius:'2px',background:'#22c55e',display:'inline-block'}}></span>Delivered</span>
-            <span style={{display:'flex',alignItems:'center',gap:'4px'}}><span style={{width:'10px',height:'10px',borderRadius:'2px',background:'#fbbf24',opacity:.7,display:'inline-block'}}></span>Transit</span>
-          </div>
-        </div>
-        {byDate.length===0 ? <EmptyState text="No data yet"/> : <BarChart data={byDate}/>}
-      </div>
-
-      {/* Company performance */}
-      {byCompany.length>0 && (
-        <div style={cardSty}>
-          <div style={sTitle}>Key Company Performance</div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:'16px'}}>
-            {byCompany.map(kc=>{
-              const p=cpal(kc.key);
-              const pct=kc.total?(kc.delivered/kc.total)*100:0;
-              return (
-                <div key={kc.key} style={{border:`1.5px solid ${p.border}`,borderRadius:'var(--radius-lg)',overflow:'hidden'}}>
-                  <div style={{height:'3px',background:p.dot}}></div>
-                  <div style={{padding:'16px'}}>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'12px'}}>
-                      <span style={{display:'inline-flex',alignItems:'center',gap:'6px',padding:'4px 10px',borderRadius:'99px',background:p.bg,color:p.text,fontWeight:700,fontSize:'12px'}}>
-                        <span style={{width:'6px',height:'6px',borderRadius:'50%',background:p.dot,flexShrink:0}}></span>
-                        {kc.key}
-                      </span>
-                      <div style={{textAlign:'right'}}>
-                        <div style={{fontWeight:700,fontSize:'22px',letterSpacing:'-.03em',lineHeight:1}}>{kc.total}</div>
-                        <div style={{fontSize:'11px',color:'var(--muted)'}}>{kc.delivered} delivered</div>
-                      </div>
-                    </div>
-                    <div style={{height:'5px',background:'var(--surface-2)',borderRadius:'99px',marginBottom:'12px',overflow:'hidden'}}>
-                      <div style={{height:'100%',background:p.dot,borderRadius:'99px',width:`${pct}%`,transition:'width .5s'}}></div>
-                    </div>
-                    {/* Coll status breakdown */}
-                    {kc.collStatus.length>0 && (
-                      <div style={{marginBottom:'10px'}}>
-                        <div style={{fontSize:'10px',fontWeight:700,color:'var(--hint)',letterSpacing:'.08em',marginBottom:'6px'}}>COLL. STATUS</div>
-                        <div style={{display:'flex',flexWrap:'wrap',gap:'4px'}}>
-                          {kc.collStatus.map(({s,n})=>(
-                            <span key={s} style={{fontSize:'10.5px'}}>
-                              <CollStatusBadge status={s} size="xs"/> ×{n}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {/* Zone breakdown */}
-                    {kc.zones.length>0 && (
-                      <div style={{marginBottom:'10px'}}>
-                        <div style={{fontSize:'10px',fontWeight:700,color:'var(--hint)',letterSpacing:'.08em',marginBottom:'6px'}}>ZONES</div>
-                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'4px'}}>
-                          {kc.zones.map(({z,n})=>{
-                            const zs=ZONE_STYLES[z];
-                            return <div key={z} style={{display:'flex',justifyContent:'space-between',padding:'4px 8px',borderRadius:'var(--radius-sm)',background:zs?.bg,color:zs?.text,fontSize:'11.5px',fontWeight:600}}>
-                              <span>{z}</span><span>{n}</span>
-                            </div>;
-                          })}
-                        </div>
-                      </div>
-                    )}
-                    {/* Sub breakdown */}
-                    {kc.subs.length>0 && (
-                      <div>
-                        <div style={{fontSize:'10px',fontWeight:700,color:'var(--hint)',letterSpacing:'.08em',marginBottom:'6px'}}>SUB-COMPANIES</div>
-                        {kc.subs.map(({s,n})=>(
-                          <div key={s} style={{display:'flex',justifyContent:'space-between',fontSize:'12px',padding:'3px 0',borderBottom:'1px solid var(--border)'}}>
-                            <span style={{color:'var(--muted)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'75%'}}>{s}</span>
-                            <span style={{fontWeight:700,flexShrink:0,marginLeft:'8px'}}>{n}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Driver + Branch */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px'}}>
-        <div style={cardSty}>
-          <div style={sTitle}>Driver Performance</div>
-          {byDriver.length===0 ? <EmptyState text="No data yet"/> : (
-            <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
-              {byDriver.map((d,i)=>(
-                <div key={d.name} style={{display:'flex',alignItems:'center',gap:'12px'}}>
-                  <div style={{width:'32px',height:'32px',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'13px',flexShrink:0,background: i===0?'#fbbf24':i===1?'#d1d5db':i===2?'#fb923c':'var(--surface-2)',color: i===0?'var(--amber-900)':'var(--ink-2)'}}>
-                    {i+1}
-                  </div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:600,fontSize:'13.5px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{d.name}</div>
-                    <div className="mono" style={{fontSize:'11px',color:'var(--hint)'}}>{d.mobile}</div>
-                  </div>
-                  <div style={{textAlign:'right',flexShrink:0}}>
-                    <div className="mono" style={{fontSize:'13px',fontWeight:700}}>
-                      <span style={{color:'var(--amber-700)'}}>{d.delivered}</span>
-                      <span style={{color:'var(--hint)'}}> / {d.total}</span>
-                    </div>
-                    <div style={{fontSize:'11px',color:'var(--hint)'}}>avg {d.avg}m</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div style={cardSty}>
-          <div style={sTitle}>Branch Activity</div>
-          {byBranch.length===0 ? <EmptyState text="No data yet"/> : (
-            <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
-              {byBranch.map(b=>{
-                const pct=b.n?(b.d/b.n)*100:0;
-                return (
-                  <div key={b.b}>
-                    <div style={{display:'flex',justifyContent:'space-between',fontSize:'13px',marginBottom:'5px'}}>
-                      <span className="mono" style={{fontWeight:700,color:'var(--amber-800)'}}>{b.b}</span>
-                      <span className="mono">
-                        <span style={{color:'var(--amber-700)',fontWeight:700}}>{b.d}</span>
-                        <span style={{color:'var(--hint)'}}> / {b.n}</span>
-                      </span>
-                    </div>
-                    <div style={{height:'6px',background:'var(--surface-2)',borderRadius:'99px',overflow:'hidden'}}>
-                      <div style={{height:'100%',background:'linear-gradient(90deg,#f59e0b,#d97706)',borderRadius:'99px',width:`${pct}%`,transition:'width .4s'}}></div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Zone summary */}
-      <div style={cardSty}>
-        <div style={sTitle}>Zone Summary</div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'12px'}}>
-          {ZONES.map(z=>{
-            const te=entries.filter(e=>e.zone===z).length;
-            const de=entries.filter(e=>e.zone===z&&e.tripStatus==='delivered').length;
-            const pct=te?(de/te)*100:0;
-            const zs=ZONE_STYLES[z];
-            return (
-              <div key={z} style={{background:zs?.bg,borderRadius:'var(--radius-lg)',padding:'16px',border:`1px solid ${zs?.text}30`}}>
-                <ZonePill zone={z}/>
-                <div style={{fontSize:'32px',fontWeight:700,letterSpacing:'-.04em',lineHeight:1,marginTop:'10px',color:'var(--ink)'}}>{te}</div>
-                <div style={{fontSize:'11.5px',color:'var(--muted)',marginTop:'2px'}}>{de} delivered</div>
-                {te>0 && <div style={{height:'4px',background:'rgba(0,0,0,.08)',borderRadius:'99px',marginTop:'10px',overflow:'hidden'}}>
-                  <div style={{height:'100%',background:zs?.text,borderRadius:'99px',width:`${pct}%`,transition:'width .4s'}}></div>
-                </div>}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+init();
 </script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
