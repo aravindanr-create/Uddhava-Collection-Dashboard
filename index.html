@@ -6,6 +6,7 @@
 <title>Trip Settlement — Uddhava Logistics</title>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --brand:#1d4e89;
@@ -13,7 +14,7 @@
     --accent:#e8871e;
     --bg:#f4f6f9;
   }
-  body{ background:var(--bg); font-family: "Segoe UI", system-ui, -apple-system, sans-serif; }
+  body{ background:var(--bg); font-family: "Segoe UI", system-ui, -apple-system, sans-serif; padding-bottom:70px; }
   .navbar-brand{ font-weight:700; letter-spacing:.3px; }
   .app-nav{ background:linear-gradient(90deg,var(--brand),var(--brand-dark)); }
   .nav-link{ color:rgba(255,255,255,.85)!important; font-weight:500; }
@@ -39,6 +40,8 @@
   .btn-brand{ background:var(--brand); border-color:var(--brand); color:#fff; }
   .btn-brand:hover{ background:var(--brand-dark); border-color:var(--brand-dark); color:#fff; }
   .settlement-card{ border-left:4px solid var(--brand); }
+  .settlement-card.selected{ border-left-color:var(--accent); background:#fff8ef; }
+  .editing-banner{ background:#fff3cd; border:1px solid #ffe08a; border-radius:10px; padding:.6rem 1rem; font-size:.85rem; color:#7a5b00; }
   #printArea{ display:none; }
   @media print{
     body *{ visibility:hidden; }
@@ -51,6 +54,15 @@
   .tab-pane-wrap{ padding-top:1.25rem; }
   .calc-box{ background:#f8f9fb; border-radius:10px; padding:.9rem; }
   .calc-box .row-line{ display:flex; justify-content:space-between; padding:.15rem 0; font-size:.88rem; }
+  #selectionBar{
+    position:fixed; left:0; right:0; bottom:0; z-index:1040;
+    background:var(--brand-dark); color:#fff; padding:.7rem 1.5rem;
+    display:none; box-shadow:0 -3px 12px rgba(0,0,0,.15);
+  }
+  #selectionBar.show{ display:flex; }
+  #selectionBar .sel-item{ margin-right:2rem; }
+  #selectionBar .sel-item .lbl{ font-size:.72rem; opacity:.8; text-transform:uppercase; }
+  #selectionBar .sel-item .val{ font-size:1.05rem; font-weight:700; }
 </style>
 </head>
 <body>
@@ -64,7 +76,7 @@
     <div class="collapse navbar-collapse" id="navMenu">
       <ul class="navbar-nav ms-auto" id="mainTabs" role="tablist">
         <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-dash" type="button"><i class="bi bi-speedometer2"></i> Dashboard</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-new" type="button"><i class="bi bi-plus-circle"></i> New Trip Entry</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-new" type="button" id="newTabBtn"><i class="bi bi-plus-circle"></i> New Trip Entry</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-list" type="button"><i class="bi bi-list-ul"></i> All Settlements</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-vehicles" type="button"><i class="bi bi-gear"></i> Vehicles</button></li>
       </ul>
@@ -117,7 +129,7 @@
           <div class="table-responsive">
             <table class="table table-sm table-hover mb-0">
               <thead><tr>
-                <th>Date</th><th>Vehicle</th><th>Driver</th><th>Route</th><th>Km</th>
+                <th>Date</th><th>Vehicle</th><th>Driver</th><th>Route</th><th>Weight</th><th>Km</th>
                 <th>Diesel (L)</th><th>Mileage</th><th>Amount</th>
               </tr></thead>
               <tbody id="tripDetailsTableBody"></tbody>
@@ -131,25 +143,38 @@
   <!-- ================= NEW TRIP ENTRY (Settlement + Diesel combined) ================= -->
   <div class="tab-pane fade tab-pane-wrap" id="tab-new">
     <div class="card p-4">
-      <h5 class="section-title mb-3"><i class="bi bi-plus-circle"></i> New Trip Entry</h5>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="section-title mb-0"><i class="bi bi-plus-circle"></i> <span id="formTitle">New Trip Entry</span></h5>
+        <div id="editingBanner" class="editing-banner" style="display:none;">
+          <i class="bi bi-pencil-square"></i> Editing an existing entry — <span id="editingBannerText"></span>
+          <button class="btn btn-sm btn-outline-dark ms-2" onclick="cancelEdit()">Cancel Edit</button>
+        </div>
+      </div>
 
       <div class="subsection-title mb-2">Trip Details</div>
       <div class="row g-3">
         <div class="col-md-3">
           <label class="form-label">Driver Name</label>
-          <input type="text" class="form-control" id="f_driver" placeholder="e.g. Marutha Pandi">
+          <select class="form-select" id="f_driver" onchange="onDriverSelected()">
+            <option value="">-- select driver --</option>
+          </select>
         </div>
         <div class="col-md-3">
           <label class="form-label">Vehicle No</label>
-          <input type="text" class="form-control text-uppercase" id="f_vehicle" placeholder="e.g. TN12BT4406" oninput="onVehicleTyped()">
+          <select class="form-select" id="f_vehicle" onchange="onVehicleSelected()">
+            <option value="">-- select vehicle --</option>
+          </select>
         </div>
         <div class="col-md-3">
-          <label class="form-label">Date</label>
+          <label class="form-label">Settlement Date</label>
           <input type="date" class="form-control" id="f_date">
         </div>
         <div class="col-md-3">
           <label class="form-label">Fixed Mileage (km/L)</label>
           <input type="number" step="0.01" class="form-control" id="f_fixedMileage" value="4.5" oninput="updateDieselPreview()">
+        </div>
+        <div class="col-12" id="noVehiclesHint" style="display:none;">
+          <div class="small text-danger"><i class="bi bi-exclamation-circle"></i> No vehicles added yet — go to the <strong>Vehicles</strong> tab to add a Vehicle No and Driver Name first.</div>
         </div>
         <div class="col-12">
           <label class="form-label">Remarks</label>
@@ -159,7 +184,7 @@
 
       <hr class="my-3">
       <div class="d-flex justify-content-between align-items-center mb-2">
-        <div class="subsection-title mb-0">Trip Legs (From → To)</div>
+        <div class="subsection-title mb-0">Trip Legs (Starting Trip + Return Trip, each with its own Date)</div>
         <button class="btn btn-sm btn-outline-primary" onclick="addLegRow()"><i class="bi bi-plus"></i> Add Leg</button>
       </div>
       <div id="legsWrap"></div>
@@ -229,7 +254,7 @@
       </div>
 
       <div class="mt-4 d-flex gap-2">
-        <button class="btn btn-brand" onclick="saveSettlement()"><i class="bi bi-check-circle"></i> Save Trip Entry</button>
+        <button class="btn btn-brand" id="saveBtn" onclick="saveSettlement()"><i class="bi bi-check-circle"></i> Save Trip Entry</button>
         <button class="btn btn-outline-secondary" onclick="resetSettlementForm()"><i class="bi bi-arrow-counterclockwise"></i> Clear</button>
       </div>
     </div>
@@ -261,20 +286,23 @@
     <div class="row g-3">
       <div class="col-lg-4">
         <div class="card p-4">
-          <h5 class="section-title mb-3"><i class="bi bi-gear"></i> Add / Update Vehicle</h5>
+          <h5 class="section-title mb-3"><i class="bi bi-gear"></i> Add / Update Vehicle &amp; Driver</h5>
           <label class="form-label">Vehicle No</label>
           <input type="text" class="form-control text-uppercase mb-2" id="v_vehicleNo" placeholder="e.g. TN12BT4406">
+          <label class="form-label">Driver Name</label>
+          <input type="text" class="form-control mb-2" id="v_driverName" placeholder="e.g. Marutha Pandi">
           <label class="form-label">Default Fixed Mileage (km/L)</label>
           <input type="number" step="0.01" class="form-control mb-3" id="v_fixedMileage" value="4.5">
           <button class="btn btn-brand" onclick="saveVehicle()"><i class="bi bi-check-circle"></i> Save Vehicle</button>
+          <div class="small text-muted mt-2">Once saved here, both Vehicle No and Driver Name show up as dropdowns in New Trip Entry.</div>
         </div>
       </div>
       <div class="col-lg-8">
         <div class="card p-3">
-          <div class="fw-semibold mb-2">Vehicles</div>
+          <div class="fw-semibold mb-2">Vehicles &amp; Drivers</div>
           <div class="table-responsive">
             <table class="table table-sm table-hover mb-0">
-              <thead><tr><th>Vehicle No</th><th>Fixed Mileage (km/L)</th><th></th></tr></thead>
+              <thead><tr><th>Vehicle No</th><th>Driver Name</th><th>Fixed Mileage (km/L)</th><th></th></tr></thead>
               <tbody id="vehicleTableBody"></tbody>
             </table>
           </div>
@@ -286,47 +314,155 @@
 </div>
 </div>
 
+<!-- Selection summary bar -->
+<div id="selectionBar" class="no-print">
+  <div class="sel-item"><div class="lbl">Selected Trips</div><div class="val" id="selCount">0</div></div>
+  <div class="sel-item"><div class="lbl">Total Amount</div><div class="val" id="selAmount">₹0</div></div>
+  <div class="sel-item"><div class="lbl">Total Advance</div><div class="val" id="selAdvance">₹0</div></div>
+  <div class="sel-item"><div class="lbl">Total Km</div><div class="val" id="selKm">0</div></div>
+  <button class="btn btn-sm btn-outline-light ms-auto" onclick="clearSelection()"><i class="bi bi-x-circle"></i> Clear Selection</button>
+</div>
+
 <!-- Print area -->
 <div id="printArea"></div>
 
 <script>
+// ============================================================
+// SUPABASE CONFIG — fill these in with your own project's values
+// (Project Settings -> API in your Supabase dashboard)
+// ============================================================
+const SUPABASE_URL = 'https://kcouuizatvepsebpfxpn.supabase.co';       // e.g. https://xxxxxxxxxxxx.supabase.co
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtjb3V1aXphdHZlcHNlYnBmeHBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzMzY2MTIsImV4cCI6MjA5OTkxMjYxMn0.QYtg5pipXlFL2LLC4bPkNaotbJMYvUhd98Yh9N7JMss';      // the "anon public" key
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 let settlements = [];
 let vehicles = [];
 let legCounter = 0;
+let editingId = null;
+let selectedIds = new Set();
 
-// ---------- Storage helpers ----------
+// ---------- Supabase data layer ----------
 async function loadAll(){
-  try{ const r = await window.storage.get('settlements'); settlements = r ? JSON.parse(r.value) : []; }catch(e){ settlements = []; }
-  try{ const r = await window.storage.get('vehicles'); vehicles = r ? JSON.parse(r.value) : []; }catch(e){ vehicles = []; }
+  try{
+    const { data: vRows, error: vErr } = await sb.from('vehicles').select('*').order('vehicle_no');
+    if(vErr) throw vErr;
+    vehicles = (vRows||[]).map(r => ({ vehicleNo: r.vehicle_no, driverName: r.driver_name||'', fixedMileage: r.fixed_mileage||4.5 }));
+  }catch(e){
+    console.error('Failed to load vehicles from Supabase:', e);
+    vehicles = [];
+    alert('Could not connect to Supabase for Vehicles. Check SUPABASE_URL / SUPABASE_ANON_KEY and that the "vehicles" table exists.');
+  }
+
+  try{
+    const { data: sRows, error: sErr } = await sb.from('settlements').select('*, trip_legs(*)').order('date', { ascending:false });
+    if(sErr) throw sErr;
+    settlements = (sRows||[]).map(dbRowToSettlement);
+  }catch(e){
+    console.error('Failed to load settlements from Supabase:', e);
+    settlements = [];
+    alert('Could not connect to Supabase for Settlements. Check SUPABASE_URL / SUPABASE_ANON_KEY and that the "settlements" and "trip_legs" tables exist.');
+  }
 }
-async function persist(key, data){
-  try{ await window.storage.set(key, JSON.stringify(data)); }catch(e){ console.error('storage error', e); }
+
+function dbRowToSettlement(r){
+  return {
+    id: r.id,
+    driver: r.driver||'',
+    vehicleNo: r.vehicle_no,
+    date: r.date,
+    remarks: r.remarks||'',
+    tripPayment: r.trip_payment||0,
+    extraAmount: r.extra_amount||0,
+    advance: r.advance||0,
+    total: r.total||0,
+    startKm: r.start_km||0,
+    endKm: r.end_km||0,
+    km: r.km||0,
+    usedDiesel: r.used_diesel||0,
+    fixedMileage: r.fixed_mileage||4.5,
+    mileage: r.mileage||0,
+    uddDiesel: r.udd_diesel||0,
+    excessDiesel: r.excess_diesel||0,
+    dieselPrice: r.diesel_price||0,
+    dieselDebitQty: r.diesel_debit_qty||0,
+    dieselDebit: r.diesel_debit||0,
+    legs: (r.trip_legs||[]).slice().sort((a,b)=>(a.leg_order||0)-(b.leg_order||0)).map(l => ({
+      startFrom: l.start_from||'', startTo: l.start_to||'', startLrNo: l.start_lr_no||'', startDate: l.start_date||'',
+      returnFrom: l.return_from||'', returnTo: l.return_to||'', returnLrNo: l.return_lr_no||'', returnDate: l.return_date||'',
+      weight: l.weight||0
+    }))
+  };
 }
 
 // ---------- Utility ----------
 function fmtMoney(n){ return '₹' + (Math.round((n||0)*100)/100).toLocaleString('en-IN'); }
 function fmtNum(n, d=2){ return (Math.round((n||0)*Math.pow(10,d))/Math.pow(10,d)).toLocaleString('en-IN'); }
-function uid(){ return 'id_' + Date.now() + '_' + Math.floor(Math.random()*10000); }
 
 function vehicleFixedMileage(vehicleNo){
   const v = vehicles.find(x => x.vehicleNo.toUpperCase() === (vehicleNo||'').toUpperCase());
   return v ? v.fixedMileage : 4.5;
 }
-function onVehicleTyped(){
+
+// When a vehicle is picked in New Trip Entry, auto-fill its driver + fixed mileage
+function onVehicleSelected(){
   const v = document.getElementById('f_vehicle').value;
-  const match = vehicles.find(x => x.vehicleNo.toUpperCase() === v.toUpperCase());
-  if(match){ document.getElementById('f_fixedMileage').value = match.fixedMileage; updateDieselPreview(); }
+  const match = vehicles.find(x => x.vehicleNo === v);
+  if(match){
+    document.getElementById('f_fixedMileage').value = match.fixedMileage;
+    if(match.driverName) document.getElementById('f_driver').value = match.driverName;
+    updateDieselPreview();
+  }
+}
+// When a driver is picked, auto-fill their usual vehicle + fixed mileage (only if vehicle not already chosen)
+function onDriverSelected(){
+  const d = document.getElementById('f_driver').value;
+  const vehicleField = document.getElementById('f_vehicle');
+  if(!vehicleField.value){
+    const match = vehicles.find(x => x.driverName === d);
+    if(match){
+      vehicleField.value = match.vehicleNo;
+      document.getElementById('f_fixedMileage').value = match.fixedMileage;
+      updateDieselPreview();
+    }
+  }
+}
+
+// Ensures a <select> has an option for `value` even if it's a legacy value not in the master list
+function ensureOption(selectEl, value){
+  if(!value) return;
+  const exists = Array.from(selectEl.options).some(o => o.value === value);
+  if(!exists){
+    const opt = document.createElement('option');
+    opt.value = value; opt.textContent = value + ' (not in Vehicles list)';
+    selectEl.appendChild(opt);
+  }
 }
 
 function refreshVehicleDropdowns(){
-  const opts = vehicles.map(v => `<option value="${v.vehicleNo}">${v.vehicleNo}</option>`).join('');
-  const filterOpts = `<option value="">All Vehicles</option>` + opts;
+  const vehicleOpts = vehicles.map(v => `<option value="${v.vehicleNo}">${v.vehicleNo}</option>`).join('');
+  const filterOpts = `<option value="">All Vehicles</option>` + vehicleOpts;
   document.getElementById('dashVehicleFilter').innerHTML = filterOpts;
   document.getElementById('listVehicleFilter').innerHTML = filterOpts;
+
+  const fVehicle = document.getElementById('f_vehicle');
+  const prevVehicle = fVehicle.value;
+  fVehicle.innerHTML = `<option value="">-- select vehicle --</option>` + vehicleOpts;
+  fVehicle.value = prevVehicle;
+
+  const driverNames = Array.from(new Set(vehicles.map(v => v.driverName).filter(Boolean)));
+  const driverOpts = driverNames.map(d => `<option value="${d}">${d}</option>`).join('');
+  const fDriver = document.getElementById('f_driver');
+  const prevDriver = fDriver.value;
+  fDriver.innerHTML = `<option value="">-- select driver --</option>` + driverOpts;
+  fDriver.value = prevDriver;
+
+  document.getElementById('noVehiclesHint').style.display = vehicles.length ? 'none' : 'block';
 }
 
 // ---------- Leg rows (New Trip Entry) ----------
-function addLegRow(from='', to='', lrNo=''){
+// Each "leg" is one round trip: a Starting Trip (From->To) and an optional Return Trip (To->From)
+function addLegRow(l){
+  l = l || {};
   legCounter++;
   const id = 'leg_' + legCounter;
   const wrap = document.getElementById('legsWrap');
@@ -334,27 +470,65 @@ function addLegRow(from='', to='', lrNo=''){
   div.className = 'leg-row';
   div.id = id;
   div.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <span class="fw-bold text-muted small">TRIP LEG</span>
+      <button class="btn btn-sm btn-outline-danger" onclick="document.getElementById('${id}').remove()"><i class="bi bi-trash"></i></button>
+    </div>
+
+    <div class="subsection-title mb-2" style="border-left-color:#1d4e89;">Starting Trip</div>
     <div class="row g-2 align-items-end">
-      <div class="col-md-4">
+      <div class="col-md-3">
         <label class="form-label mb-1">From</label>
-        <input type="text" class="form-control form-control-sm leg-from" value="${from}" placeholder="Origin">
+        <input type="text" class="form-control form-control-sm leg-start-from" value="${l.startFrom||''}" placeholder="Origin">
       </div>
-      <div class="col-md-4">
+      <div class="col-md-3">
         <label class="form-label mb-1">To</label>
-        <input type="text" class="form-control form-control-sm leg-to" value="${to}" placeholder="Destination">
+        <input type="text" class="form-control form-control-sm leg-start-to" value="${l.startTo||''}" placeholder="Destination">
       </div>
       <div class="col-md-3">
         <label class="form-label mb-1">LR No</label>
-        <input type="text" class="form-control form-control-sm leg-lr" value="${lrNo}" placeholder="LR Number">
+        <input type="text" class="form-control form-control-sm leg-start-lr" value="${l.startLrNo||''}" placeholder="LR Number">
       </div>
-      <div class="col-md-1">
-        <button class="btn btn-sm btn-outline-danger w-100" onclick="document.getElementById('${id}').remove()"><i class="bi bi-trash"></i></button>
+      <div class="col-md-3">
+        <label class="form-label mb-1">Starting Trip Date</label>
+        <input type="date" class="form-control form-control-sm leg-start-date" value="${l.startDate||''}">
+      </div>
+    </div>
+
+    <div class="subsection-title mb-2 mt-3" style="border-left-color:#e8871e;">Return Trip</div>
+    <div class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label mb-1">From</label>
+        <input type="text" class="form-control form-control-sm leg-return-from" value="${l.returnFrom||''}" placeholder="Origin">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label mb-1">To</label>
+        <input type="text" class="form-control form-control-sm leg-return-to" value="${l.returnTo||''}" placeholder="Destination">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label mb-1">LR No</label>
+        <input type="text" class="form-control form-control-sm leg-return-lr" value="${l.returnLrNo||''}" placeholder="LR Number">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label mb-1">Return Trip Date</label>
+        <input type="date" class="form-control form-control-sm leg-return-date" value="${l.returnDate||''}">
+      </div>
+    </div>
+
+    <div class="row g-2 align-items-end mt-2">
+      <div class="col-md-3">
+        <label class="form-label mb-1">Weight (Tons)</label>
+        <input type="number" step="0.01" class="form-control form-control-sm leg-weight" value="${l.weight||''}" placeholder="e.g. 9.5">
       </div>
     </div>`;
   wrap.appendChild(div);
 }
 
 function resetSettlementForm(){
+  editingId = null;
+  document.getElementById('formTitle').textContent = 'New Trip Entry';
+  document.getElementById('editingBanner').style.display = 'none';
+  document.getElementById('saveBtn').innerHTML = '<i class="bi bi-check-circle"></i> Save Trip Entry';
   document.getElementById('f_driver').value = '';
   document.getElementById('f_vehicle').value = '';
   document.getElementById('f_date').value = '';
@@ -373,6 +547,10 @@ function resetSettlementForm(){
   document.getElementById('legsWrap').innerHTML = '';
   addLegRow();
   updateDieselPreview();
+}
+
+function cancelEdit(){
+  resetSettlementForm();
 }
 
 function updateTotalPreview(){
@@ -418,13 +596,19 @@ async function saveSettlement(){
   const dieselPrice = parseFloat(document.getElementById('f_dieselPrice').value)||0;
   const dieselDebitQty = parseFloat(document.getElementById('f_dieselDebitQty').value)||0;
 
-  if(!vehicleNo || !date){ alert('Please enter Vehicle No and Date.'); return; }
+  if(!vehicleNo || !date){ alert('Please select a Vehicle No and enter the Date.'); return; }
 
   const legs = Array.from(document.querySelectorAll('#legsWrap .leg-row')).map(row => ({
-    from: row.querySelector('.leg-from').value.trim(),
-    to: row.querySelector('.leg-to').value.trim(),
-    lrNo: row.querySelector('.leg-lr').value.trim()
-  })).filter(l => l.from || l.to);
+    startFrom: row.querySelector('.leg-start-from').value.trim(),
+    startTo: row.querySelector('.leg-start-to').value.trim(),
+    startLrNo: row.querySelector('.leg-start-lr').value.trim(),
+    startDate: row.querySelector('.leg-start-date').value,
+    returnFrom: row.querySelector('.leg-return-from').value.trim(),
+    returnTo: row.querySelector('.leg-return-to').value.trim(),
+    returnLrNo: row.querySelector('.leg-return-lr').value.trim(),
+    returnDate: row.querySelector('.leg-return-date').value,
+    weight: parseFloat(row.querySelector('.leg-weight').value)||0
+  })).filter(l => l.startFrom || l.startTo || l.returnFrom || l.returnTo);
 
   if(legs.length === 0){ alert('Please add at least one trip leg.'); return; }
 
@@ -434,69 +618,155 @@ async function saveSettlement(){
   const excessDiesel = uddDiesel - usedDiesel;
   const dieselDebit = dieselPrice * dieselDebitQty;
 
-  const rec = {
-    id: uid(), driver, vehicleNo, date, remarks, legs,
-    tripPayment, extraAmount, advance, total: tripPayment + extraAmount - advance,
-    startKm, endKm, km, usedDiesel, fixedMileage, mileage, uddDiesel, excessDiesel,
-    dieselPrice, dieselDebitQty, dieselDebit
+  const dbRecord = {
+    driver, vehicle_no: vehicleNo, date, remarks,
+    trip_payment: tripPayment, extra_amount: extraAmount, advance,
+    total: tripPayment + extraAmount - advance,
+    start_km: startKm, end_km: endKm, km,
+    used_diesel: usedDiesel, fixed_mileage: fixedMileage, mileage,
+    udd_diesel: uddDiesel, excess_diesel: excessDiesel,
+    diesel_price: dieselPrice, diesel_debit_qty: dieselDebitQty, diesel_debit: dieselDebit
   };
-  settlements.push(rec);
-  await persist('settlements', settlements);
 
-  // auto-register vehicle if new
-  if(!vehicles.find(v => v.vehicleNo === vehicleNo)){
-    vehicles.push({ vehicleNo, fixedMileage });
-    await persist('vehicles', vehicles);
+  try{
+    let settlementId = editingId;
+    if(editingId){
+      const { error } = await sb.from('settlements').update(dbRecord).eq('id', editingId);
+      if(error) throw error;
+      const { error: delErr } = await sb.from('trip_legs').delete().eq('settlement_id', editingId);
+      if(delErr) throw delErr;
+    } else {
+      const { data, error } = await sb.from('settlements').insert(dbRecord).select().single();
+      if(error) throw error;
+      settlementId = data.id;
+    }
+
+    const legRows = legs.map((l, idx) => ({
+      settlement_id: settlementId,
+      start_from: l.startFrom, start_to: l.startTo, start_lr_no: l.startLrNo, start_date: l.startDate || null,
+      return_from: l.returnFrom, return_to: l.returnTo, return_lr_no: l.returnLrNo, return_date: l.returnDate || null,
+      weight: l.weight, leg_order: idx
+    }));
+    const { error: legErr } = await sb.from('trip_legs').insert(legRows);
+    if(legErr) throw legErr;
+
+    const wasEditing = !!editingId;
+    resetSettlementForm();
+    await loadAll();
     refreshVehicleDropdowns(); renderVehicleTable();
+    renderDashboard(); renderSettlementsList();
+    alert(wasEditing ? 'Trip entry updated.' : 'Trip entry saved.');
+    new bootstrap.Tab(document.querySelector('[data-bs-target="#tab-list"]')).show();
+  }catch(e){
+    console.error(e);
+    alert('Could not save to Supabase: ' + (e.message||e));
   }
+}
 
-  resetSettlementForm();
-  renderDashboard(); renderSettlementsList();
-  alert('Trip entry saved.');
-  new bootstrap.Tab(document.querySelector('[data-bs-target="#tab-list"]')).show();
+function loadForEdit(id){
+  const s = settlements.find(x => x.id === id);
+  if(!s) return;
+  editingId = id;
+  document.getElementById('formTitle').textContent = 'Edit Trip Entry';
+  document.getElementById('editingBanner').style.display = 'inline-block';
+  document.getElementById('editingBannerText').textContent = `${s.vehicleNo} — ${s.date||''}`;
+  document.getElementById('saveBtn').innerHTML = '<i class="bi bi-check-circle"></i> Update Trip Entry';
+
+  const fDriverSel = document.getElementById('f_driver');
+  const fVehicleSel = document.getElementById('f_vehicle');
+  ensureOption(fDriverSel, s.driver||'');
+  ensureOption(fVehicleSel, s.vehicleNo||'');
+  fDriverSel.value = s.driver||'';
+  fVehicleSel.value = s.vehicleNo||'';
+  document.getElementById('f_date').value = s.date||'';
+  document.getElementById('f_remarks').value = s.remarks||'';
+  document.getElementById('f_fixedMileage').value = s.fixedMileage||4.5;
+  document.getElementById('f_tripPayment').value = s.tripPayment||0;
+  document.getElementById('f_extraAmount').value = s.extraAmount||0;
+  document.getElementById('f_advance').value = s.advance||0;
+  document.getElementById('f_startKm').value = s.startKm||'';
+  document.getElementById('f_endKm').value = s.endKm||'';
+  document.getElementById('f_usedDiesel').value = s.usedDiesel||'';
+  document.getElementById('f_dieselPrice').value = s.dieselPrice||'';
+  document.getElementById('f_dieselDebitQty').value = s.dieselDebitQty||'';
+
+  document.getElementById('legsWrap').innerHTML = '';
+  (s.legs||[]).forEach(l => addLegRow(l));
+  if((s.legs||[]).length === 0) addLegRow();
+
+  updateTotalPreview();
+  updateDieselPreview();
+  updateDieselDebit();
+
+  new bootstrap.Tab(document.getElementById('newTabBtn')).show();
+  window.scrollTo({top:0, behavior:'smooth'});
 }
 
 async function deleteSettlement(id){
   if(!confirm('Delete this settlement?')) return;
-  settlements = settlements.filter(s => s.id !== id);
-  await persist('settlements', settlements);
-  renderDashboard(); renderSettlementsList();
+  try{
+    const { error } = await sb.from('settlements').delete().eq('id', id);
+    if(error) throw error;
+    selectedIds.delete(id);
+    await loadAll();
+    renderDashboard(); renderSettlementsList(); renderSelectionBar();
+    if(editingId === id) resetSettlementForm();
+  }catch(e){
+    console.error(e);
+    alert('Could not delete from Supabase: ' + (e.message||e));
+  }
 }
 
 // ---------- Vehicles ----------
 async function saveVehicle(){
   const vehicleNo = document.getElementById('v_vehicleNo').value.trim().toUpperCase();
+  const driverName = document.getElementById('v_driverName').value.trim();
   const fixedMileage = parseFloat(document.getElementById('v_fixedMileage').value)||4.5;
   if(!vehicleNo){ alert('Please enter a vehicle number.'); return; }
-  const existing = vehicles.find(v => v.vehicleNo === vehicleNo);
-  if(existing){ existing.fixedMileage = fixedMileage; }
-  else{ vehicles.push({ vehicleNo, fixedMileage }); }
-  await persist('vehicles', vehicles);
-  document.getElementById('v_vehicleNo').value = '';
-  document.getElementById('v_fixedMileage').value = 4.5;
-  refreshVehicleDropdowns(); renderVehicleTable();
+  try{
+    const { error } = await sb.from('vehicles').upsert(
+      { vehicle_no: vehicleNo, driver_name: driverName, fixed_mileage: fixedMileage },
+      { onConflict: 'vehicle_no' }
+    );
+    if(error) throw error;
+    document.getElementById('v_vehicleNo').value = '';
+    document.getElementById('v_driverName').value = '';
+    document.getElementById('v_fixedMileage').value = 4.5;
+    await loadAll();
+    refreshVehicleDropdowns(); renderVehicleTable();
+  }catch(e){
+    console.error(e);
+    alert('Could not save vehicle to Supabase: ' + (e.message||e));
+  }
 }
 async function deleteVehicle(vehicleNo){
   if(!confirm('Delete vehicle ' + vehicleNo + '?')) return;
-  vehicles = vehicles.filter(v => v.vehicleNo !== vehicleNo);
-  await persist('vehicles', vehicles);
-  refreshVehicleDropdowns(); renderVehicleTable();
+  try{
+    const { error } = await sb.from('vehicles').delete().eq('vehicle_no', vehicleNo);
+    if(error) throw error;
+    await loadAll();
+    refreshVehicleDropdowns(); renderVehicleTable();
+  }catch(e){
+    console.error(e);
+    alert('Could not delete vehicle from Supabase: ' + (e.message||e));
+  }
 }
 function renderVehicleTable(){
   const tbody = document.getElementById('vehicleTableBody');
   if(vehicles.length === 0){
-    tbody.innerHTML = `<tr><td colspan="3" class="empty-hint">No vehicles added yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" class="empty-hint">No vehicles added yet.</td></tr>`;
     return;
   }
   tbody.innerHTML = vehicles.map(v => `
     <tr>
       <td><strong>${v.vehicleNo}</strong></td>
+      <td>${v.driverName || '—'}</td>
       <td>${fmtNum(v.fixedMileage,2)}</td>
       <td><button class="btn btn-sm btn-outline-danger" onclick="deleteVehicle('${v.vehicleNo}')"><i class="bi bi-trash"></i></button></td>
     </tr>`).join('');
 }
 
-// ---------- Settlements list (with vehicle + date-wise filter) ----------
+// ---------- Settlements list (with vehicle + date-wise filter + selection) ----------
 function clearListFilters(){
   document.getElementById('listVehicleFilter').value = '';
   document.getElementById('listFromDate').value = '';
@@ -514,6 +784,29 @@ function filteredSettlements(vehicleElId, fromElId, toElId){
   return list;
 }
 
+function toggleSelect(id, checked){
+  if(checked) selectedIds.add(id); else selectedIds.delete(id);
+  renderSelectionBar();
+  const card = document.getElementById('card_'+id);
+  if(card) card.classList.toggle('selected', checked);
+}
+function clearSelection(){
+  selectedIds.clear();
+  document.querySelectorAll('.settlement-card').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.select-chk').forEach(c => c.checked = false);
+  renderSelectionBar();
+}
+function renderSelectionBar(){
+  const bar = document.getElementById('selectionBar');
+  const selList = settlements.filter(s => selectedIds.has(s.id));
+  if(selList.length === 0){ bar.classList.remove('show'); return; }
+  bar.classList.add('show');
+  document.getElementById('selCount').textContent = selList.length;
+  document.getElementById('selAmount').textContent = fmtMoney(selList.reduce((a,s)=>a+s.total,0));
+  document.getElementById('selAdvance').textContent = fmtMoney(selList.reduce((a,s)=>a+s.advance,0));
+  document.getElementById('selKm').textContent = fmtNum(selList.reduce((a,s)=>a+(s.km||0),0),0);
+}
+
 function renderSettlementsList(){
   const wrap = document.getElementById('settlementsListWrap');
   let list = filteredSettlements('listVehicleFilter','listFromDate','listToDate')
@@ -521,28 +814,36 @@ function renderSettlementsList(){
 
   if(list.length === 0){
     wrap.innerHTML = `<div class="empty-hint"><i class="bi bi-inbox" style="font-size:2rem"></i><div>No settlements match this filter yet.</div></div>`;
+    renderSelectionBar();
     return;
   }
 
   wrap.innerHTML = list.map(s => `
-    <div class="card settlement-card mb-3 p-3">
+    <div class="card settlement-card mb-3 p-3 ${selectedIds.has(s.id)?'selected':''}" id="card_${s.id}">
       <div class="d-flex flex-wrap justify-content-between align-items-start">
-        <div>
-          <div class="fw-bold">${s.vehicleNo} &nbsp;<span class="text-muted fw-normal">| ${s.date||''}</span></div>
-          <div class="text-muted small">Driver: ${s.driver||'—'}</div>
-          ${s.remarks ? `<div class="text-muted small fst-italic">"${s.remarks}"</div>` : ''}
+        <div class="d-flex gap-2">
+          <input type="checkbox" class="form-check-input select-chk mt-1" ${selectedIds.has(s.id)?'checked':''} onchange="toggleSelect('${s.id}', this.checked)">
+          <div>
+            <div class="fw-bold">${s.vehicleNo} &nbsp;<span class="text-muted fw-normal">| ${s.date||''}</span></div>
+            <div class="text-muted small">Driver: ${s.driver||'—'}</div>
+            ${s.remarks ? `<div class="text-muted small fst-italic">"${s.remarks}"</div>` : ''}
+          </div>
         </div>
         <div class="text-end">
           <div class="fw-bold text-primary">${fmtMoney(s.total)}</div>
+          <button class="btn btn-sm btn-outline-primary mt-1" onclick="loadForEdit('${s.id}')"><i class="bi bi-pencil"></i></button>
           <button class="btn btn-sm btn-outline-secondary mt-1" onclick="printOne('${s.id}')"><i class="bi bi-printer"></i></button>
           <button class="btn btn-sm btn-outline-danger mt-1" onclick="deleteSettlement('${s.id}')"><i class="bi bi-trash"></i></button>
         </div>
       </div>
       <div class="table-responsive mt-2">
         <table class="table table-sm mb-0">
-          <thead><tr><th>From</th><th>To</th><th>LR No</th></tr></thead>
+          <thead><tr><th>Trip</th><th>From</th><th>To</th><th>LR No</th><th>Date</th><th>Weight (T)</th></tr></thead>
           <tbody>
-            ${s.legs.map(l => `<tr><td>${l.from}</td><td>${l.to}</td><td>${l.lrNo||'—'}</td></tr>`).join('')}
+            ${s.legs.map(l => `
+              <tr><td><span class="badge" style="background:#1d4e89;">Starting</span></td><td>${l.startFrom||'—'}</td><td>${l.startTo||'—'}</td><td>${l.startLrNo||'—'}</td><td>${l.startDate||'—'}</td><td rowspan="2" class="align-middle">${l.weight?fmtNum(l.weight,2):'—'}</td></tr>
+              ${(l.returnFrom || l.returnTo) ? `<tr><td><span class="badge" style="background:#e8871e;">Return</span></td><td>${l.returnFrom||'—'}</td><td>${l.returnTo||'—'}</td><td>${l.returnLrNo||'—'}</td><td>${l.returnDate||'—'}</td></tr>` : `<tr><td colspan="5" class="text-muted small">No return trip recorded</td></tr>`}
+            `).join('')}
           </tbody>
         </table>
       </div>
@@ -557,6 +858,8 @@ function renderSettlementsList(){
         ${s.dieselDebit ? `<div>Diesel Debit: <strong>${fmtMoney(s.dieselDebit)}</strong></div>` : ''}
       </div>
     </div>`).join('');
+
+  renderSelectionBar();
 }
 
 // ---------- Print ----------
@@ -570,12 +873,15 @@ function buildPrintHtml(list){
           <div><strong>Vehicle No:</strong> ${s.vehicleNo}</div>
           <div><strong>Date:</strong> ${s.date||''}</div>
         </div>
-        <table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;">
+        <table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:12px;">
           <thead>
             <tr style="background:#eee;">
+              <th style="border:1px solid #333;padding:4px;">Trip</th>
               <th style="border:1px solid #333;padding:4px;">From</th>
               <th style="border:1px solid #333;padding:4px;">To</th>
               <th style="border:1px solid #333;padding:4px;">LR No</th>
+              <th style="border:1px solid #333;padding:4px;">Date</th>
+              <th style="border:1px solid #333;padding:4px;">Weight (T)</th>
               <th style="border:1px solid #333;padding:4px;">Trip Payment</th>
               <th style="border:1px solid #333;padding:4px;">Extra</th>
               <th style="border:1px solid #333;padding:4px;">Advance</th>
@@ -583,16 +889,30 @@ function buildPrintHtml(list){
             </tr>
           </thead>
           <tbody>
-            ${s.legs.map((l,i) => `
+            ${(function(){
+              // Flatten each leg into a Starting row + optional Return row, and only
+              // print the shared payment/advance/remarks once against the very first row.
+              const rows = [];
+              s.legs.forEach(l => {
+                rows.push({ type:'Starting', from:l.startFrom, to:l.startTo, lrNo:l.startLrNo, date:l.startDate, weight:l.weight });
+                if(l.returnFrom || l.returnTo){
+                  rows.push({ type:'Return', from:l.returnFrom, to:l.returnTo, lrNo:l.returnLrNo, date:l.returnDate, weight:'' });
+                }
+              });
+              return rows.map((r,i) => `
               <tr>
-                <td style="border:1px solid #333;padding:4px;">${l.from}</td>
-                <td style="border:1px solid #333;padding:4px;">${l.to}</td>
-                <td style="border:1px solid #333;padding:4px;">${l.lrNo||'—'}</td>
-                ${i===0 ? `<td style="border:1px solid #333;padding:4px;" rowspan="${s.legs.length}">₹${fmtNum(s.tripPayment,2)}</td>
-                <td style="border:1px solid #333;padding:4px;" rowspan="${s.legs.length}">₹${fmtNum(s.extraAmount,2)}</td>
-                <td style="border:1px solid #333;padding:4px;" rowspan="${s.legs.length}">₹${fmtNum(s.advance,2)}</td>
-                <td style="border:1px solid #333;padding:4px;" rowspan="${s.legs.length}">${s.remarks||''}</td>` : ''}
-              </tr>`).join('')}
+                <td style="border:1px solid #333;padding:4px;">${r.type}</td>
+                <td style="border:1px solid #333;padding:4px;">${r.from||'—'}</td>
+                <td style="border:1px solid #333;padding:4px;">${r.to||'—'}</td>
+                <td style="border:1px solid #333;padding:4px;">${r.lrNo||'—'}</td>
+                <td style="border:1px solid #333;padding:4px;">${r.date||'—'}</td>
+                <td style="border:1px solid #333;padding:4px;">${r.weight?fmtNum(r.weight,2):'—'}</td>
+                ${i===0 ? `<td style="border:1px solid #333;padding:4px;" rowspan="${rows.length}">₹${fmtNum(s.tripPayment,2)}</td>
+                <td style="border:1px solid #333;padding:4px;" rowspan="${rows.length}">₹${fmtNum(s.extraAmount,2)}</td>
+                <td style="border:1px solid #333;padding:4px;" rowspan="${rows.length}">₹${fmtNum(s.advance,2)}</td>
+                <td style="border:1px solid #333;padding:4px;" rowspan="${rows.length}">${s.remarks||''}</td>` : ''}
+              </tr>`).join('');
+            })()}
           </tbody>
         </table>
         <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:13px;">
@@ -601,6 +921,31 @@ function buildPrintHtml(list){
         </div>
       </div>
     `).join('')}
+    ${(function(){
+      const tripCount = list.length;
+      const totalAmount = list.reduce((a,s)=>a+(s.total||0),0);
+      const totalKm = list.reduce((a,s)=>a+(s.km||0),0);
+      const totalDiesel = list.reduce((a,s)=>a+(s.usedDiesel||0),0);
+      const avgMileage = totalDiesel>0 ? totalKm/totalDiesel : 0;
+      return `
+      <div style="font-family:sans-serif;border:2px solid #1d4e89;border-radius:6px;padding:12px;margin-top:10px;">
+        <div style="font-weight:bold;font-size:15px;margin-bottom:8px;color:#1d4e89;">Summary</div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <tr style="background:#eee;">
+            <th style="border:1px solid #333;padding:6px;">Trip Count</th>
+            <th style="border:1px solid #333;padding:6px;">Total Amount</th>
+            <th style="border:1px solid #333;padding:6px;">Total Diesel Used</th>
+            <th style="border:1px solid #333;padding:6px;">Avg Mileage</th>
+          </tr>
+          <tr>
+            <td style="border:1px solid #333;padding:6px;text-align:center;">${tripCount}</td>
+            <td style="border:1px solid #333;padding:6px;text-align:center;font-weight:bold;">₹${fmtNum(totalAmount,2)}</td>
+            <td style="border:1px solid #333;padding:6px;text-align:center;">${fmtNum(totalDiesel,2)} L</td>
+            <td style="border:1px solid #333;padding:6px;text-align:center;">${fmtNum(avgMileage,2)} km/L</td>
+          </tr>
+        </table>
+      </div>`;
+    })()}
   `;
 }
 function printOne(id){
@@ -637,7 +982,7 @@ function renderDashboard(){
   document.getElementById('statDiesel').textContent = fmtNum(totalDiesel,1) + ' L';
   document.getElementById('statDieselDebit').textContent = fmtMoney(totalDieselDebit);
 
-  // Vehicle-wise diesel consumption table (always all vehicles, ignoring the single-vehicle filter so it stays a comparison view)
+  // Vehicle-wise diesel consumption table (always all vehicles, for comparison)
   const byVehicle = {};
   settlements.forEach(s => {
     if(!byVehicle[s.vehicleNo]) byVehicle[s.vehicleNo] = { trips:0, km:0, used:0, udd:0, debit:0 };
@@ -668,12 +1013,13 @@ function renderDashboard(){
   tTbody.innerHTML = details.length ? details.map(s => `
     <tr>
       <td>${s.date||''}</td><td>${s.vehicleNo}</td><td>${s.driver||'—'}</td>
-      <td>${s.legs.map(l=>l.from+' → '+l.to).join(', ')}</td>
+      <td>${s.legs.map(l => l.startFrom+' → '+l.startTo + ((l.returnFrom||l.returnTo) ? (' → '+(l.returnTo||l.returnFrom)) : '')).join(', ')}</td>
+      <td>${fmtNum(s.legs.reduce((a,l)=>a+(l.weight||0),0),2)}</td>
       <td>${fmtNum(s.km,0)}</td>
       <td>${fmtNum(s.usedDiesel,2)}</td>
       <td>${fmtNum(s.mileage,2)}</td>
       <td class="fw-bold">${fmtMoney(s.total)}</td>
-    </tr>`).join('') : `<tr><td colspan="8" class="empty-hint">No settlements yet.</td></tr>`;
+    </tr>`).join('') : `<tr><td colspan="9" class="empty-hint">No settlements yet.</td></tr>`;
 }
 
 // ---------- Init ----------
